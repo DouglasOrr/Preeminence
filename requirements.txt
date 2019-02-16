@@ -1,0 +1,5 @@
+networkx
+numpy
+pdoc3
+pytest
+scipy

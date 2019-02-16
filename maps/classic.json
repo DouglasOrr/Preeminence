@@ -1,0 +1,17 @@
+{
+    "name": "classic",
+    "territories": [
+        ["Alaska", "North America", ["Northwest Territories", "Alberta"]],
+        ["Northwest Territories", "North America", ["Alaska", "Alberta", "Greenland", "Ontario"]]
+    ],
+    "continents": [
+        ["North America", 5],
+        ["South America", 2],
+        ["Europe", 6],
+        ["Africa", 3],
+        ["Asia", 7],
+        ["Australia", 2]
+    ],
+    "initial_armies": [40, 35, 30, 25, 20],
+    "max_turns": 30
+}

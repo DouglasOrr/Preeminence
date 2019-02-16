@@ -1,0 +1,13 @@
+{
+    "name": "tiny",
+    "territories": [
+        ["A", "All", ["B", "C"]],
+        ["B", "All", ["A", "C"]],
+        ["C", "All", ["A", "B"]]
+    ],
+    "continents": [
+        ["All", 1]
+    ],
+    "initial_armies": [3, 2],
+    "max_turns": 20
+}
