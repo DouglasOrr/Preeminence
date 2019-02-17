@@ -1,8 +1,53 @@
 {
     "name": "classic",
     "territories": [
-        ["Alaska", "North America", ["Northwest Territories", "Alberta"]],
-        ["Northwest Territories", "North America", ["Alaska", "Alberta", "Greenland", "Ontario"]]
+        ["Alaska", "North America", ["Kamchatka", "Northwest Territory", "Alberta"]],
+        ["Northwest Territory", "North America", ["Alaska", "Alberta", "Greenland", "Ontario"]],
+        ["Greenland", "North America", ["Northwest Territory", "Ontario", "Quebec", "Iceland"]],
+        ["Alberta", "North America", ["Alaska", "Northwest Territory", "Ontario", "Western United States"]],
+        ["Ontario", "North America", ["Alberta", "Northwest Territory", "Greenland", "Quebec", "Western United States", "Eastern United States"]],
+        ["Quebec", "North America", ["Ontario", "Greenland", "Eastern United States"]],
+        ["Western United States", "North America", ["Alberta", "Ontario", "Eastern United States", "Central America"]],
+        ["Eastern United States", "North America", ["Western United States", "Ontario", "Quebec", "Central America"]],
+        ["Central America", "North America", ["Western United States", "Eastern United States", "Venezuela"]],
+
+        ["Venezuela", "South America", ["Central America", "Brazil", "Peru"]],
+        ["Peru", "South America", ["Venezuela", "Brazil", "Argentina"]],
+        ["Brazil", "South America", ["Peru", "Venezuela", "North Africa", "Argentina"]],
+        ["Argentina", "South America", ["Peru", "Brazil"]],
+
+        ["Iceland", "Europe", ["Greenland", "Scandanavia", "Great Britain"]],
+        ["Scandanavia", "Europe", ["Iceland", "Ukraine", "Northern Europe", "Great Britain"]],
+        ["Great Britain", "Europe", ["Iceland", "Scandanavia", "Northern Europe", "Western Europe"]],
+        ["Northern Europe", "Europe", ["Great Britain", "Scandanavia", "Ukraine", "Southern Europe", "Western Europe"]],
+        ["Ukraine", "Europe", ["Northern Europe", "Scandanavia", "Ural", "Kazakhstan", "Middle East", "Southern Europe"]],
+        ["Western Europe", "Europe", ["Great Britain", "Northern Europe", "Southern Europe", "North Africa"]],
+        ["Southern Europe", "Europe", ["Western Europe", "Northern Europe", "Ukraine", "Middle East", "Egypt", "North Africa"]],
+
+        ["North Africa", "Africa", ["Western Europe", "Southern Europe", "Egypt", "East Africa", "Congo", "Brazil"]],
+        ["Egypt", "Africa", ["North Africa", "Southern Europe", "Middle East", "East Africa"]],
+        ["East Africa", "Africa", ["North Africa", "Egypt", "Middle East", "Madagascar", "South Africa", "Congo"]],
+        ["Congo", "Africa", ["North Africa", "East Africa", "South Africa"]],
+        ["South Africa", "Africa", ["Congo", "East Africa", "Madagascar"]],
+        ["Madagascar", "Africa", ["South Africa", "East Africa"]],
+
+        ["Ural", "Asia", ["Ukraine", "Siberia", "China", "Kazakhstan"]],
+        ["Siberia", "Asia", ["Ural", "Yakutsk", "Irkutsk", "Mongolia", "China"]],
+        ["Yakutsk", "Asia", ["Siberia", "Kamchatka", "Irkutsk"]],
+        ["Kamchatka", "Asia", ["Yakutsk", "Alaska", "Japan", "Mongolia", "Irkutsk"]],
+        ["Irkutsk", "Asia", ["Siberia", "Yakutsk", "Kamchatka", "Mongolia"]],
+        ["Kazakhstan", "Asia", ["Ukraine", "Ural", "China", "India", "Middle East"]],
+        ["China", "Asia", ["Kazakhstan", "Ural", "Siberia", "Mongolia", "Siam", "India"]],
+        ["Mongolia", "Asia", ["Siberia", "Irkutsk", "Kamchatka", "Japan", "China"]],
+        ["Japan", "Asia", ["Mongolia", "Kamchatka"]],
+        ["Middle East", "Asia", ["Egypt", "Southern Europe", "Ukraine", "Kazakhstan", "India", "East Africa"]],
+        ["India", "Asia", ["Middle East", "Kazakhstan", "China", "Siam"]],
+        ["Siam", "Asia", ["India", "China", "Indonesia"]],
+
+        ["Indonesia", "Australia", ["Siam", "Papua New Guinea", "Western Australia"]],
+        ["Papua New Guinea", "Australia", ["Indonesia", "Eastern Australia", "Western Australia"]],
+        ["Western Australia", "Australia", ["Indonesia", "Papua New Guinea", "Eastern Australia"]],
+        ["Eastern Australia", "Australia", ["Western Australia", "Papua New Guinea"]]
     ],
     "continents": [
         ["North America", 5],

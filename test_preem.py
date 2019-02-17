@@ -10,7 +10,7 @@ MAPS = [
     'tiny3',
     'tiny4',
     'mini',
-    # 'classic',
+    'classic',
 ]
 
 
@@ -104,7 +104,7 @@ def test_fuzz_fair(map_name):
     rand_agent = ConsistencyCheckingAgent(random_agent.Agent())
     for n_players in range(2, map_.max_players):
         agents = [rand_agent] * n_players
-        ntrials = 1000
+        ntrials = 10 if map_name == 'classic' else 1000
         results = [preem.play_game(map_, agents) for _ in range(ntrials)]
         for result in results:
             assert set(result.winners) | set(result.eliminated) == set(range(n_players))
