@@ -2,7 +2,7 @@ import preem
 import random
 
 
-class RandomAgent(preem.Agent):
+class Agent(preem.Agent):
     def __init__(self, min_to_attack=3):
         self.min_to_attack = min_to_attack
 

@@ -1,5 +1,5 @@
 {
-    "name": "tiny",
+    "name": "tiny3",
     "territories": [
         ["A", "All", ["B", "C"]],
         ["B", "All", ["A", "C"]],

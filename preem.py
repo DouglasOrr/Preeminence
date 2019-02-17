@@ -118,7 +118,7 @@ class World:
                                 reinforcements value of the next set)
 
     `eliminated_players` -- `[int]` -- list of player indices who have been eliminated from the
-                                       game, in order of elimination
+                                       game, in order of elimination (does not include neutral)
     """
     def __init__(self, map, player_names, has_neutral):
         self.map = map
@@ -566,6 +566,10 @@ def _reinforce(agent, state, deck, rand):
         state.world.armies[territory] += count
 
 
+class GameOver(Exception):
+    pass
+
+
 def _attack_and_move(agent, state, deck, agents_and_states, rand):
     earned_card = False
     while True:
@@ -592,7 +596,6 @@ def _attack_and_move(agent, state, deck, agents_and_states, rand):
             state.world.owners[action.to] = state.player_index
             earned_card = True
             if state.world.count_territories(old_owner) == 0:
-                state.world.eliminated_players.append(old_owner)
                 if old_owner < len(agents_and_states):  # i.e. not Neutral
                     # The victor claims the cards from the eliminated player
                     old_owner_state = agents_and_states[old_owner][1]
@@ -600,6 +603,10 @@ def _attack_and_move(agent, state, deck, agents_and_states, rand):
                     old_owner_state.cards.clear()
                     state.world.n_cards[state.player_index] = len(state.cards)
                     state.world.n_cards[old_owner] = 0
+                    # Eliminate & test for game over
+                    state.world.eliminated_players.append(old_owner)
+                    if len(state.world.eliminated_players) == len(agents_and_states) - 1:
+                        raise GameOver
 
     if earned_card:
         state.cards.append(deck.draw())
@@ -611,16 +618,15 @@ def _main_phase(world, agents_and_states, rand):
     turn_order = agents_and_states.copy()
     rand.shuffle(turn_order)
     deck = _Deck(world.map, rand)
-    for turn in range(world.map.max_turns):
-        world.turn = turn
-        for agent, state in turn_order:
-            if state.player_index not in world.eliminated_players:
-                _reinforce(agent, state, deck, rand)
-                _attack_and_move(agent, state, deck, agents_and_states, rand)
-                # Test for game over
-                if 1 == sum(1 for _, s in agents_and_states
-                            if s.player_index not in world.eliminated_players):
-                    return  # game over - we have a winner!
+    try:
+        for turn in range(world.map.max_turns):
+            world.turn = turn
+            for agent, state in turn_order:
+                if state.player_index not in world.eliminated_players:
+                    _reinforce(agent, state, deck, rand)
+                    _attack_and_move(agent, state, deck, agents_and_states, rand)
+    except GameOver:
+        pass
 
 
 GameResult = collections.namedtuple('GameResult', ('winners', 'eliminated'))
@@ -668,8 +674,6 @@ def play_game(map, agents, seed=None):
     _main_phase(world, agents_and_states[:-1] if has_neutral else agents_and_states, rand=rand)
 
     # Determine outcome (filtering out Neutral from the results)
-    winners = [idx for idx in range(len(agents)) if idx not in world.eliminated_players]
-    eliminated = world.eliminated_players
-    if len(agents) in eliminated:
-        eliminated.remove(len(agents))
-    return GameResult(winners, eliminated)
+    winners = [idx for idx in range(len(agents))
+               if idx not in world.eliminated_players]
+    return GameResult(winners, world.eliminated_players)
