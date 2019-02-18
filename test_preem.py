@@ -6,6 +6,16 @@ import preem
 import agents.random_agent as random_agent
 
 
+# Unit tests
+
+def test_game_result():
+    assert preem.GameResult([1, 2], [3, 0]).outright_winner() is None
+    assert preem.GameResult([2], [3, 1, 0]).outright_winner() == 2
+
+
+# Functional tests
+
+
 MAPS = [
     'tiny3',
     'tiny4',
@@ -99,13 +109,13 @@ class ConsistencyCheckingAgent(preem.Agent):
 
 @pytest.mark.parametrize('map_name', MAPS)
 def test_fuzz_fair(map_name):
-    random.seed(100)
+    rand = random.Random(100)
     map_ = preem.Map.load_file('maps/{}.json'.format(map_name))
     rand_agent = ConsistencyCheckingAgent(random_agent.Agent())
     for n_players in range(2, map_.max_players):
         agents = [rand_agent] * n_players
         ntrials = 10 if map_name == 'classic' else 1000
-        results = [preem.play_game(map_, agents) for _ in range(ntrials)]
+        results = [preem.Game.play(map_, agents, rand=rand) for _ in range(ntrials)]
         for result in results:
             assert set(result.winners) | set(result.eliminated) == set(range(n_players))
             assert not (set(result.winners) & set(result.eliminated))

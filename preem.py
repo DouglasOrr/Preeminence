@@ -166,6 +166,15 @@ class PlayerState:
         self.player_index = player_index
         self.cards = []
 
+    def __repr__(self):
+        my_territories = self.my_territories
+        my_armies = sum(self.world.armies[t] for t in my_territories)
+        return 'PlayerState[index={}, territories={}/{}, armies={}/{}]'.format(
+            self.player_index,
+            len(my_territories), self.map.n_territories,
+            my_armies, sum(self.world.armies),
+        )
+
     @property
     def map(self):
         """Shortcut to get to the `Map`."""
@@ -484,7 +493,7 @@ class _NeutralAgent(Agent):
     def __init__(self, rand):
         self.rand = rand
 
-    def __str__(self):
+    def __repr__(self):
         return 'Neutral'
 
     def place(self, state):
@@ -492,6 +501,24 @@ class _NeutralAgent(Agent):
         territories = state.my_territories
         min_armies = min(state.world.armies[t] for t in territories)
         return self.rand.choice([t for t in territories if state.world.armies[t] == min_armies])
+
+
+Event = collections.namedtuple('Event', ('agent', 'state', 'method', 'args', 'result'))
+Event.__doc__ = """A method response of one of the agents in the game.
+
+Events are generated when iterating through a `Game`, for example:
+
+    for event in game:
+        print(event)
+
+Each event is emitted by the game before it has been executed - i.e. `state` is given as it
+is when the `agent` made the action.
+"""
+Event.agent.__doc__ = """`Agent` instance taking the action."""
+Event.state.__doc__ = """`PlayerState` at time the action was issued."""
+Event.method.__doc__ = """Name of the method called on `agent` (e.g. `"act"` or `"reinforce"`)."""
+Event.args.__doc__ = """`dict` containing any other arguments passed to `agent.method`."""
+Event.result.__doc__ = """Result returned by the agent (e.g. action or reinforcement dictionary)."""
 
 
 def _placement_phase(world, agents_and_states, rand):
@@ -506,7 +533,8 @@ def _placement_phase(world, agents_and_states, rand):
                 placement = empty_territories.pop()
                 assert world.armies[placement] == 0
             else:
-                placement = agent.place(state)
+                placement = _ValidatingAgent(agent).place(state)
+                yield Event(agent, state, 'place', {}, placement)
             world.owners[placement] = state.player_index
             world.armies[placement] += 1
 
@@ -549,7 +577,8 @@ def _reinforce(agent, state, deck, rand):
 
     # 3. From cards
     if 3 <= len(state.cards):
-        set_ = agent.redeem(state)
+        set_ = _ValidatingAgent(agent).redeem(state)
+        yield Event(agent, state, 'redeem', {}, set_)
         if set_:
             for card in set_:
                 state.cards.remove(card)
@@ -561,19 +590,21 @@ def _reinforce(agent, state, deck, rand):
             state.world.sets_redeemed += 1
 
     # Apply reinforcements
-    destinations = agent.reinforce(state, general_reinforcements)
+    destinations = _ValidatingAgent(agent).reinforce(state, count=general_reinforcements)
+    yield Event(agent, state, 'reinforce', dict(count=general_reinforcements), destinations)
     for territory, count in destinations.items():
         state.world.armies[territory] += count
 
 
-class GameOver(Exception):
+class _GameOverException(Exception):
     pass
 
 
 def _attack_and_move(agent, state, deck, agents_and_states, rand):
     earned_card = False
     while True:
-        action = agent.act(state, earned_card)
+        action = _ValidatingAgent(agent).act(state, earned_card=earned_card)
+        yield Event(agent, state, 'act', dict(earned_card=earned_card), action)
         if action is None:
             break  # end of turn
 
@@ -606,7 +637,7 @@ def _attack_and_move(agent, state, deck, agents_and_states, rand):
                     # Eliminate & test for game over
                     state.world.eliminated_players.append(old_owner)
                     if len(state.world.eliminated_players) == len(agents_and_states) - 1:
-                        raise GameOver
+                        raise _GameOverException
 
     if earned_card:
         state.cards.append(deck.draw())
@@ -623,9 +654,9 @@ def _main_phase(world, agents_and_states, rand):
             world.turn = turn
             for agent, state in turn_order:
                 if state.player_index not in world.eliminated_players:
-                    _reinforce(agent, state, deck, rand)
-                    _attack_and_move(agent, state, deck, agents_and_states, rand)
-    except GameOver:
+                    yield from _reinforce(agent, state, deck, rand)
+                    yield from _attack_and_move(agent, state, deck, agents_and_states, rand)
+    except _GameOverException:
         pass
 
 
@@ -646,34 +677,60 @@ def _outright_winner(self):
 
     returns -- `int or None` -- Player ID of winner, if there was a single winner
     """
-    return self.winners[0] if len(self.winners) == 1 else None
+    return next(iter(self.winners)) if len(self.winners) == 1 else None
 GameResult.outright_winner = _outright_winner  # NOQA
 
 
-def play_game(map, agents, seed=None):
-    """Play a full game of Pre-eminence.
+class Game:
+    """Play and optionally watch a game of Pre-eminence."""
+    def __init__(self, world, agents_and_states, rand):
+        self.world = world
+        self.agents_and_states = agents_and_states
+        self.rand = rand
+        self._iter = it.chain(_placement_phase(world, agents_and_states, rand=rand),
+                              _main_phase(world,
+                                          agents_and_states[:-1] if world.has_neutral else agents_and_states,
+                                          rand=rand))
 
-    `map` -- `Map`
+    def __iter__(self):
+        return self
 
-    `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+    def __next__(self):
+        return next(self._iter)
 
-    returns -- `GameResult` -- outcome of the game (N.B. simplest to call `GameResult.outright_winner()`)
-    """
-    # Setup
-    rand = random.Random(seed)
-    has_neutral = len(agents) == 2
-    agents_with_neutral = (list(agents) + [_NeutralAgent(rand)]) if has_neutral else agents
-    world = World(map, [str(agent) for agent in agents_with_neutral], has_neutral=has_neutral)
+    @property
+    def result(self):
+        """Get the `GameResult` of a finished game."""
+        winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
+        return GameResult(winners, self.world.eliminated_players)
 
-    # It's incorrect to use any agent except through agents_and_states, as this wraps critical validation
-    agents_and_states = [(_ValidatingAgent(agent), PlayerState(world, idx))
-                         for idx, agent in enumerate(agents_with_neutral)]
+    @classmethod
+    def start(cls, map, agents, rand=random):
+        """Start a game of Pre-eminence.
 
-    # Play
-    _placement_phase(world, agents_and_states, rand=rand)
-    _main_phase(world, agents_and_states[:-1] if has_neutral else agents_and_states, rand=rand)
+        `map` -- `Map`
 
-    # Determine outcome (filtering out Neutral from the results)
-    winners = [idx for idx in range(len(agents))
-               if idx not in world.eliminated_players]
-    return GameResult(winners, world.eliminated_players)
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        returns -- `Game` -- running game (iterate over it to watch it progress)
+        """
+        has_neutral = len(agents) == 2
+        agents_with_neutral = (list(agents) + [_NeutralAgent(rand)]) if has_neutral else agents
+        world = World(map, [str(agent) for agent in agents_with_neutral], has_neutral=has_neutral)
+        agents_and_states = [(agent, PlayerState(world, idx)) for idx, agent in enumerate(agents_with_neutral)]
+        return cls(world, agents_and_states, rand=rand)
+
+    @classmethod
+    def play(cls, map, agents, rand=random):
+        """Play a full game of Pre-eminence (without watching what goes on), and return the `GameResult`.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        returns -- `GameResult` -- outcome of the game (N.B. simplest to call `GameResult.outright_winner()`)
+        """
+        game = cls.start(map, agents, rand=rand)
+        for _ in game:
+            pass  # simply exhaust the iterator (as we're not interested in watching the game!)
+        return game.result

@@ -6,7 +6,7 @@ class Agent(preem.Agent):
     def __init__(self, min_to_attack=3):
         self.min_to_attack = min_to_attack
 
-    def __str__(self):
+    def __repr__(self):
         return 'RandomAgent[min_to_attack={}]'.format(self.min_to_attack)
 
     def place(self, state):
