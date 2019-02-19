@@ -12,48 +12,27 @@ import itertools as it
 # Basic data ################################################################################
 
 class Map:
-    """Unchanging data about the topology & behaviour of the map being played.
-
-    Members & properties are split into _logical_ (which affect gameplay) & _presentation_ (visual only).
-
-    Logical:
-
-        `n_territories` -- `int` -- total number of territories (so the IDs are `range(n_territories)`)
-
-        `n_continents` -- `int` -- total number of continents (so the IDs are `range(n_continents)`)
-
-        `continent_values` -- `[int]` -- indexed by continent ID, to give the number of reinforcements
-                                         credited to an outright owner of that continent
-
-        `continents` -- `[int]` -- indexed by territory ID, to give the continent ID of that territory
-
-        `edges` -- `[set(int)]` -- indexed by territory ID, giving a set of connected territory IDs
-
-        `initial_armies` -- `{int: int}` -- maps number of players to initial number of armies to place
-
-        `max_players` -- `int` -- maximum number of players on this map
-
-        `max_turns` -- `int` -- maximum number of turns allowed in a game, before declaring a draw
-
-    Presentation:
-
-        `name` -- `str` -- human-readable name for the map
-
-        `territory_names` -- `[str]` -- human-readable names for the territories
-
-        `continent_names` -- `[str]` -- human-readable names for the map
-    """
+    """Unchanging data about the topology & behaviour of the map being played."""
     def __init__(self, name, continent_names, continent_values,
                  territory_names, continents, edges,
                  initial_armies, max_turns):
         self.name = name
+        """`str` -- human-readable name for the map"""
         self.continent_names = continent_names
+        """`[str]` -- human-readable names for the map"""
         self.continent_values = continent_values
+        """`[int]` -- indexed by continent ID, to give the number of reinforcements
+                      credited to an outright owner of that continent"""
         self.territory_names = territory_names
+        """`[str]` -- human-readable names for the territories"""
         self.continents = continents
+        """`[int]` -- indexed by territory ID, to give the continent ID of that territory"""
         self.edges = edges
+        """`[set(int)]` -- indexed by territory ID, giving a set of connected territory IDs"""
         self.initial_armies = initial_armies
+        """`{int: int}` -- maps number of players to initial number of armies to place"""
         self.max_turns = max_turns
+        """`int` -- maximum number of turns allowed in a game, before declaring a draw"""
 
     def __repr__(self):
         return 'Map[name={}, territories={}, continents={}]'.format(
@@ -61,17 +40,17 @@ class Map:
 
     @property
     def n_territories(self):
-        """Total number of territories on the map."""
+        """`int` -- total number of territories (so the IDs are `range(n_territories)`)"""
         return len(self.territory_names)
 
     @property
     def n_continents(self):
-        """Total number of continents on the map."""
+        """`int` -- total number of continents (so the IDs are `range(n_continents)`)"""
         return len(self.continent_names)
 
     @property
     def max_players(self):
-        """Maximum allowed number of players."""
+        """`int` -- maximum number of players on this map"""
         return max(self.initial_armies.keys())
 
     @classmethod
@@ -98,38 +77,28 @@ class Map:
 
 
 class World:
-    """On top of a Map, World provides the visible mutable state of the game in progress.
-
-    `map` -- `Map` -- constant information about the map being played
-
-    `player_names` -- `[str]` -- human-readable names of the players
-
-    `has_neutral` -- `bool` -- if true, player with ID `n_players - 1` is the neutral player in a 1v1 game
-
-    `owners` -- `[int]` -- player index of the owning player for each territory
-
-    `armies` -- `[int]` -- number of armies on each territory
-
-    `n_cards` -- `[int]` -- number of cards in possession of each player
-
-    `turn` -- `int` -- turn counter
-
-    `sets_redeemed` -- `int` -- how many sets have been redeemed so far? (this determines the
-                                reinforcements value of the next set)
-
-    `eliminated_players` -- `[int]` -- list of player indices who have been eliminated from the
-                                       game, in order of elimination (does not include neutral)
-    """
+    """On top of a `Map`, World provides the visible mutable state of the `Game` in progress."""
     def __init__(self, map, player_names, has_neutral):
         self.map = map
+        """`Map` -- constant information about the map being played"""
         self.player_names = player_names
+        """`[str]` -- human-readable names of the players"""
         self.has_neutral = has_neutral
+        """`bool` -- if true, player with ID `n_players - 1` is the neutral player in a 1v1 game"""
         self.owners = [None for _ in range(map.n_territories)]
+        """`[int]` -- player index of the owning player for each territory"""
         self.armies = [0 for _ in range(map.n_territories)]
+        """`[int]` -- number of armies on each territory"""
         self.n_cards = [0 for _ in range(len(player_names))]
+        """`[int]` -- number of cards in possession of each player"""
         self.turn = 0
+        """`int` -- turn counter"""
         self.sets_redeemed = 0
+        """`int` -- how many sets have been redeemed so far? (this determines the
+                    reinforcements value of the next set)"""
         self.eliminated_players = []
+        """`[int]` -- list of player indices who have been eliminated from the
+                      game, in order of elimination (does not include neutral)"""
 
     @property
     def n_players(self):
@@ -154,40 +123,39 @@ If a player knocks out another, the victor claims all of the defeated player's c
 
 
 class PlayerState:
-    """The current world's state, as viewed by a specific player.
-
-    `world` -- `World`
-
-    `player_index` -- `int` -- ID this player in the wider world, i.e.
-                      if `world.owners[4] == player_index`, then I own territory `4`.
-    """
+    """The current world's state, as viewed by a specific player."""
     def __init__(self, world, player_index):
         self.world = world
+        """`World` -- the world's visible state"""
         self.player_index = player_index
+        """`int` -- ID of this player in the wider world, i.e.
+                    if `world.owners[4] == player_index`, then this player owns territory `4`"""
         self.cards = []
+        """[`Card`] -- list of cards owned by the player"""
 
     def __repr__(self):
         my_territories = self.my_territories
         my_armies = sum(self.world.armies[t] for t in my_territories)
-        return 'PlayerState[index={}, territories={}/{}, armies={}/{}]'.format(
+        return 'PlayerState[index={}, territories={}/{}, armies={}/{}, cards={}]'.format(
             self.player_index,
             len(my_territories), self.map.n_territories,
             my_armies, sum(self.world.armies),
+            len(self.cards),
         )
 
     @property
     def map(self):
-        """Shortcut to get to the `Map`."""
+        """`Map` -- shortcut to get to the map"""
         return self.world.map
 
     @property
     def my_territories(self):
-        """Get a list of all territory IDs which currently belong to me."""
+        """`[int]` -- a list of all territory IDs which currently belong to this player"""
         return self.world.territories_belonging_to(self.player_index)
 
 
 def is_matching_set(cards):
-    """Determine if the set of 3 cards defines a valid matching set.
+    """Determine if the set of 3 `Card`s defines a valid matching set.
 
     A set is matching if the cards are all the same or all different.
 
@@ -200,7 +168,7 @@ def is_matching_set(cards):
 
 
 def get_matching_sets(cards):
-    """Helper for enumerating all matching sets of cards.
+    """Helper for enumerating all matching sets of `Card`s.
 
     `cards` -- `[Card]` -- cards available
 
@@ -268,6 +236,35 @@ SET_MATCHING_TERRITORY_BONUS = 2
 """The number of bonus armies awarded for owning the territory on a card of a redeemed set."""
 
 
+Event = collections.namedtuple('Event', ('agent', 'state', 'method', 'args', 'result'))
+Event.__doc__ = """A decision made by an agents in the game.
+
+Events are generated when iterating through a `Game`, for example:
+
+    for event in game:
+        print(event)
+
+Events are generated for each method call on each `Agent` instance in the game, in other words every
+time any agent is asked to make a decision.
+
+Each event is emitted by the game before it has been executed, so `state` is given as it
+is when the `agent` made the decision (e.g. if `result is Attack`, then `state` is the state before the
+attack is resolved.
+"""
+Event.agent.__doc__ = """`Agent` -- instance taking the action"""
+Event.state.__doc__ = """`PlayerState` -- state as the action is issued
+
+**Beware if you store this field while continuing to play out the `Game`: the mutable data contained will
+be updated as the game progresses.**
+"""
+Event.method.__doc__ = """`str` -- name of the method called on `agent` (e.g. `"act"` or `"reinforce"`)"""
+Event.args.__doc__ = """`dict` -- containing any other arguments passed to `agent.method`"""
+Event.result.__doc__ = """`*` -- result returned by the agent (see `Agent` methods)
+
+(e.g. `Attack`, `Move` or reinforcement dictionary)
+"""
+
+
 # Agent ################################################################################
 
 Attack = collections.namedtuple('Attack', ('from_', 'to', 'count'))
@@ -277,34 +274,34 @@ You are permitted to execute as many attacks as you like during your turn, there
 (in which you may defeat or lose up to two armies), your agent will be asked again to `Agent.act()` until it
 returns `Move` or `None` (after which no more attacks are allowed until the next turn).
 """
-Attack.from_.__doc__ = """Territory ID to launch the attack from.
+Attack.from_.__doc__ = """`int` -- territory ID to launch the attack from.
 
 The territory must be owned by the player (`world.owners[a.from_] == state.player_index`) and must contain
 at least `a.count+1` armies.
 """
-Attack.to.__doc__ = """Territory ID to launch the attack against.
+Attack.to.__doc__ = """`int` -- territory ID to launch the attack against.
 
 The territory must not be owned by the player (`world.owners[a.from_] != state.player_index`) and must be
 accessible from the `a.from_` territory (`a.to in map.edges[a.from_]`).
 """
-Attack.count.__doc__ = """Number of armies to attack with, then to move into `from_` in case of victory."""
+Attack.count.__doc__ = """`int` -- number of armies to attack with, then to move into `from_` in case of victory."""
 
 Move = collections.namedtuple('Move', ('from_', 'to', 'count'))
 Move.__doc__ = """Action to move troops between two adjacent territories of yours (`from_->to`).
 
 Note that this ends your turn.
 """
-Move.from_.__doc__ = """Territory ID to move armies from.
+Move.from_.__doc__ = """`int` -- territory ID to move armies from.
 
 The territory must be owned by the player (`world.owners[m.from_] == state.player_index`) and must contain
 at least `m.count+1` armies.
 """
-Move.to.__doc__ = """Territory ID to move armies to.
+Move.to.__doc__ = """`int` -- territory ID to move armies to.
 
 The territory must be owned by the player (`world.owners[m.from_] == state.player_index`) and must be
 accessible from the `m.from_` territory (`m.to in map.edges[m.from_]`).
 """
-Move.count.__doc__ = """Number of armies to move."""
+Move.count.__doc__ = """`int` -- number of armies to move."""
 
 
 class Agent:
@@ -441,9 +438,9 @@ class FallbackAgent(Agent):
     def __init__(self, agent, rand):
         """Create a fallback agent, warns & then fixes erroneous `Agent` responses.
 
-        agent -- `Agent` -- implementation to wrap
+        `agent` -- `Agent` -- implementation to wrap
 
-        rand -- `random.RandomState` -- random generator to use for fallback behaviour
+        `rand` -- `random.RandomState` -- random generator to use for fallback behaviour
         """
         self.agent = agent
         self._validating_agent = _ValidatingAgent(agent)
@@ -501,24 +498,6 @@ class _NeutralAgent(Agent):
         territories = state.my_territories
         min_armies = min(state.world.armies[t] for t in territories)
         return self.rand.choice([t for t in territories if state.world.armies[t] == min_armies])
-
-
-Event = collections.namedtuple('Event', ('agent', 'state', 'method', 'args', 'result'))
-Event.__doc__ = """A method response of one of the agents in the game.
-
-Events are generated when iterating through a `Game`, for example:
-
-    for event in game:
-        print(event)
-
-Each event is emitted by the game before it has been executed - i.e. `state` is given as it
-is when the `agent` made the action.
-"""
-Event.agent.__doc__ = """`Agent` instance taking the action."""
-Event.state.__doc__ = """`PlayerState` at time the action was issued."""
-Event.method.__doc__ = """Name of the method called on `agent` (e.g. `"act"` or `"reinforce"`)."""
-Event.args.__doc__ = """`dict` containing any other arguments passed to `agent.method`."""
-Event.result.__doc__ = """Result returned by the agent (e.g. action or reinforcement dictionary)."""
 
 
 def _placement_phase(world, agents_and_states, rand):
@@ -645,7 +624,6 @@ def _attack_and_move(agent, state, deck, agents_and_states, rand):
 
 
 def _main_phase(world, agents_and_states, rand):
-    """Run the main turn-based play phase of the game."""
     turn_order = agents_and_states.copy()
     rand.shuffle(turn_order)
     deck = _Deck(world.map, rand)
@@ -662,11 +640,11 @@ def _main_phase(world, agents_and_states, rand):
 
 GameResult = collections.namedtuple('GameResult', ('winners', 'eliminated'))
 GameResult.__doc__ = """The outcome of a single game."""
-GameResult.winners.__doc__ = """`[int]` -- Player IDs of game winners.
+GameResult.winners.__doc__ = """`[int]` -- player IDs of game winners.
 
 This could be multiple agents (in the case of a turn-limit tie).
 """
-GameResult.eliminated.__doc__ = """`[int]` -- Eliminated player IDs listed in order.
+GameResult.eliminated.__doc__ = """`[int]` -- eliminated player IDs listed in order.
 
 (i.e. `eliminated[0]` = knocked out first).
 """
@@ -675,18 +653,37 @@ GameResult.eliminated.__doc__ = """`[int]` -- Eliminated player IDs listed in or
 def _outright_winner(self):
     """Get the outright winner (if there is one, otherwise `None`).
 
-    returns -- `int or None` -- Player ID of winner, if there was a single winner
+    returns -- `int or None` -- player ID of winner, if there was a single winner
     """
     return next(iter(self.winners)) if len(self.winners) == 1 else None
 GameResult.outright_winner = _outright_winner  # NOQA
 
 
 class Game:
-    """Play and optionally watch a game of Pre-eminence."""
+    """Play and optionally watch a game of Pre-eminence.
+
+    To _play_ a game & get only the final outcome see `Game.play()`.
+
+    To _watch_ a game, use `Game.start()`, and use the fact that **a Game is an iterator(`Event`)**,
+    for example:
+
+        for event in Game.start(map, [agent_a, agent_b]):
+            if event.agent is agent_a and event.method == 'act':
+                print(event.state, event.result)
+
+    Some other useful ways of using Game as an iterator:
+
+        event = next(game)   # step through manually
+
+        event = next(e for e in game if e.agent is agent_a)   # find the next matching action
+    """
     def __init__(self, world, agents_and_states, rand):
         self.world = world
+        """`World` -- containing this game"""
         self.agents_and_states = agents_and_states
+        """[(`Agent`, `PlayerState`)] -- paired agents and states (including neutral)"""
         self.rand = rand
+        """`random.RandomState`"""
         self._iter = it.chain(_placement_phase(world, agents_and_states, rand=rand),
                               _main_phase(world,
                                           agents_and_states[:-1] if world.has_neutral else agents_and_states,
@@ -696,17 +693,29 @@ class Game:
         return self
 
     def __next__(self):
+        """Advance the game to the next `Event`, and return it.
+
+        Note that the `Event` object contains data that will be modified by the game the when `next()` is
+        called again.
+        """
         return next(self._iter)
 
     @property
     def result(self):
-        """Get the `GameResult` of a finished game."""
+        """Get the `GameResult` of a finished game.
+
+        Note that this still returns a result if the game is not finished (inevitably a tie).
+        """
         winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
         return GameResult(winners, self.world.eliminated_players)
 
     @classmethod
     def start(cls, map, agents, rand=random):
         """Start a game of Pre-eminence.
+
+        This includes some handling for 1v1 matches - to introduce a _neutral_ agent, which places
+        armies on territories, but will never attack either player. Therefore the returned game may contain
+        an extra agent in `agents_and_states`.
 
         `map` -- `Map`
 
@@ -728,7 +737,8 @@ class Game:
 
         `agents` -- `[Agent]` -- `Agent` instances who are playing the game
 
-        returns -- `GameResult` -- outcome of the game (N.B. simplest to call `GameResult.outright_winner()`)
+        returns -- `GameResult` -- outcome of the game (note: you may then find it simplest to
+                   call `GameResult.outright_winner()`)
         """
         game = cls.start(map, agents, rand=rand)
         for _ in game:
