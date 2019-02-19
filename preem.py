@@ -124,14 +124,26 @@ If a player knocks out another, the victor claims all of the defeated player's c
 
 class PlayerState:
     """The current world's state, as viewed by a specific player."""
-    def __init__(self, world, player_index):
+    def __init__(self, world, player_index, cards=[]):
         self.world = world
         """`World` -- the world's visible state"""
         self.player_index = player_index
         """`int` -- ID of this player in the wider world, i.e.
                     if `world.owners[4] == player_index`, then this player owns territory `4`"""
-        self.cards = []
+        self.cards = cards.copy()
         """[`Card`] -- list of cards owned by the player"""
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def _add_cards(self, cards_to_add):
+        """Add cards to this player (e.g. earning by attacking, or conquering)."""
+        self.cards += cards_to_add
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def _remove_cards(self, cards_to_remove):
+        """Remove cards from this player (e.g. after redeeming a set)."""
+        for card in cards_to_remove:
+            self.cards.remove(card)
+        self.world.n_cards[self.player_index] = len(self.cards)
 
     def __repr__(self):
         my_territories = self.my_territories
@@ -374,8 +386,8 @@ class _ValidatingAgent(Agent):
     def place(self, state):
         placement = self.agent.place(state)
         if not (0 <= placement < state.map.n_territories):
-            raise self._error('army placement out of bounds (at: {}, expected: [0..{}))',
-                              placement, state.map.n_territories)
+            raise self._error('army placement out of bounds (at: {}, expected: [0..{}])',
+                              placement, state.map.n_territories - 1)
         if state.world.owners[placement] != state.player_index:
             raise self._error('tried to place an army on an enemy territory (at: {}, owner: {})',
                               placement, state.world.owners[placement])
@@ -542,7 +554,7 @@ class _Deck:
         self.redeemed += cards
 
 
-def _reinforce(agent, state, deck, rand):
+def _reinforce(agent, state, deck):
     # 1. From territories
     general_reinforcements = count_reinforcements(state.world.count_territories(state.player_index))
 
@@ -560,11 +572,10 @@ def _reinforce(agent, state, deck, rand):
         yield Event(agent, state, 'redeem', {}, set_)
         if set_:
             for card in set_:
-                state.cards.remove(card)
                 if state.world.owners[card.territory] == state.player_index:
                     state.world.armies[card.territory] += SET_MATCHING_TERRITORY_BONUS
             deck.redeem(set_)
-            state.world.n_cards[state.player_index] = len(state.cards)  # update publicly visible state
+            state._remove_cards(set_)
             general_reinforcements += value_of_set(state.world.sets_redeemed)
             state.world.sets_redeemed += 1
 
@@ -609,18 +620,16 @@ def _attack_and_move(agent, state, deck, agents_and_states, rand):
                 if old_owner < len(agents_and_states):  # i.e. not Neutral
                     # The victor claims the cards from the eliminated player
                     old_owner_state = agents_and_states[old_owner][1]
-                    state.cards += old_owner_state.cards
-                    old_owner_state.cards.clear()
-                    state.world.n_cards[state.player_index] = len(state.cards)
-                    state.world.n_cards[old_owner] = 0
+                    cards_to_transfer = old_owner_state.cards.copy()
+                    state._add_cards(cards_to_transfer)
+                    old_owner_state._remove_cards(cards_to_transfer)
                     # Eliminate & test for game over
                     state.world.eliminated_players.append(old_owner)
                     if len(state.world.eliminated_players) == len(agents_and_states) - 1:
                         raise _GameOverException
 
     if earned_card:
-        state.cards.append(deck.draw())
-        state.world.n_cards[state.player_index] = len(state.cards)
+        state._add_cards([deck.draw()])
 
 
 def _main_phase(world, agents_and_states, rand):
@@ -632,7 +641,7 @@ def _main_phase(world, agents_and_states, rand):
             world.turn = turn
             for agent, state in turn_order:
                 if state.player_index not in world.eliminated_players:
-                    yield from _reinforce(agent, state, deck, rand)
+                    yield from _reinforce(agent, state, deck)
                     yield from _attack_and_move(agent, state, deck, agents_and_states, rand)
     except _GameOverException:
         pass
