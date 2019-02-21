@@ -300,6 +300,9 @@ def test_maps(map_name):
         == len(map_.continent_values)
     assert set(map_.continents) == set(range(map_.n_continents)), 'each continent must match a territory'
 
+    # SVG repr
+    assert map_._repr_svg_()
+
 
 class ConsistencyCheckingAgent(preem.Agent):
     """Wrap preem.Agent to check consistency of the world every time it is called."""
@@ -354,6 +357,22 @@ class ConsistencyCheckingAgent(preem.Agent):
         return self.agent.act(state, earned_card)
 
 
+def test_play_game():
+    random.seed(345)
+    map_ = preem.Map.load_file('maps/tiny4.json')
+    agents = [ConsistencyCheckingAgent(random_agent.Agent()),
+              ConsistencyCheckingAgent(random_agent.Agent())]
+    game = preem.Game.start(map_, agents)
+    for n, event in enumerate(game):
+        # log should already contain this latest event
+        assert game.world.event_log[-1] == event._replace(agent=str(event.agent))
+        assert len(game.world.event_log) == n + 1
+    assert game.world._repr_svg_()
+    assert game.world.event_log[-1]._repr_svg_()
+    # game should be over
+    assert len(game.result.winners) == 1 or game.world.turn == map_.max_turns
+
+
 @pytest.mark.parametrize('map_name', MAPS)
 def test_fuzz_fair(map_name):
     random.seed(100)
@@ -368,11 +387,11 @@ def test_fuzz_fair(map_name):
             assert not (set(result.winners) & set(result.eliminated))
         if map_name in {'mini', 'tiny3', 'tiny4'}:
             winners = dict(collections.Counter([r.outright_winner() for r in results]))
-            # small maps, aggressive agents => there should be a winner
+            # small maps, aggressive agents => there should normally be a winner
             n_draws = winners.pop(None, 0)
             assert n_draws < 0.1 * ntrials
             # fairness means the wins should be distributed evenly
-            # - this test could fail, if so, try increasing ntrials
+            # - this test could fail - if so, try increasing ntrials
             p_win = 1 / n_players
             norm_approx_std = (ntrials * p_win * (1 - p_win)) ** 0.5
             assert max(winners.values()) - min(winners.values()) < 3 * norm_approx_std

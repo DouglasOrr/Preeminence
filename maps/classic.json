@@ -58,5 +58,54 @@
         ["Australia", 2]
     ],
     "initial_armies": [40, 35, 30, 25, 20],
-    "max_turns": 30
+    "max_turns": 30,
+    "layout": {
+        "Alaska": [0.0, 0.5],
+        "Northwest Territory": [0.07, 0.5],
+        "Greenland": [0.29, 0.5],
+        "Alberta": [0.04, 0.46],
+        "Ontario": [0.1, 0.46],
+        "Quebec": [0.2, 0.46],
+        "Western United States": [0.04, 0.38],
+        "Eastern United States": [0.12, 0.38],
+        "Central America": [0.06, 0.3],
+
+        "Venezuela": [0.12, 0.23],
+        "Peru": [0.11, 0.16],
+        "Brazil": [0.2, 0.18],
+        "Argentina": [0.14, 0.06],
+
+        "Iceland": [0.36, 0.48],
+        "Scandanavia": [0.44, 0.47],
+        "Great Britain": [0.38, 0.45],
+        "Northern Europe": [0.46, 0.43],
+        "Ukraine": [0.56, 0.44],
+        "Western Europe": [0.39, 0.4],
+        "Southern Europe": [0.47, 0.38],
+
+        "North Africa": [0.34, 0.3],
+        "Egypt": [0.46, 0.3],
+        "East Africa": [0.48, 0.23],
+        "Congo": [0.4, 0.2],
+        "South Africa": [0.44, 0.1],
+        "Madagascar": [0.51, 0.15],
+
+        "Ural": [0.66, 0.47],
+        "Siberia": [0.75, 0.47],
+        "Yakutsk": [0.86, 0.48],
+        "Kamchatka": [0.95, 0.48],
+        "Irkutsk": [0.86, 0.44],
+        "Kazakhstan": [0.66, 0.38],
+        "Mongolia": [0.88, 0.39],
+        "Japan": [0.96, 0.37],
+        "China": [0.82, 0.34],
+        "Middle East": [0.59, 0.32],
+        "India": [0.75, 0.28],
+        "Siam": [0.86, 0.26],
+
+        "Indonesia": [0.9, 0.2],
+        "Papua New Guinea": [1.0, 0.17],
+        "Western Australia": [0.92, 0.1],
+        "Eastern Australia": [0.99, 0.1]
+    }
 }

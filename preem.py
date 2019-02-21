@@ -6,7 +6,99 @@ import json
 import random
 import sys
 import math
+import html
 import itertools as it
+import networkx as nx
+
+
+class _View:
+    """Helpers for viewing core data."""
+    @staticmethod
+    def _clip_string(s, max_length):
+        if max_length < len(s):
+            h = (max_length - 2) // 2
+            return '{}..{}'.format(s[:h], s[-h:])
+        return s
+
+    @classmethod
+    def _tooltip(cls, index, map_, world=None, reinforcements=None):
+        tip = '#{}: {}'.format(index, map_.territory_names[index])
+        if world is not None:
+            owner = world.owners[index]
+            tip += '\n#{}: {}'.format(owner, cls._clip_string(world.player_names[owner], 32))
+            tip += '\n{} armies'.format(world.armies[index])
+        if reinforcements is not None:
+            tip += '\n+{} reinforcements'.format(reinforcements)
+        return tip
+
+    @classmethod
+    def map_to_network(cls, map_):
+        ratio = ((max(y for _, y in map_.layout) - min(y for _, y in map_.layout)) /
+                 (max(x for x, _ in map_.layout) - min(x for x, _ in map_.layout)))
+        size = 2 + 1.25 * map_.n_territories ** .5
+        g = nx.Graph(size=size, ratio=ratio, splines=True, fixedsize=True,
+                     bgcolor='gray90', pad=.5, labelfloat=True)
+        g.add_nodes_from((i, dict(tooltip=cls._tooltip(i, map_),
+                                  pos='{},{}!'.format(size*x, size*y),
+                                  shape='circle',
+                                  label='',
+                                  style='filled',
+                                  color='black',
+                                  width=.2,
+                                  penwidth=0,
+                                  fixedsize=True))
+                         for i, (x, y) in enumerate(map_.layout))
+        g.add_edges_from(((a, b) for a, bb in enumerate(map_.edges) for b in bb if a < b))
+        return g
+
+    @classmethod
+    def world_to_network(cls, world, player_index=None, neutral_color='gray40',
+                         colors=('coral3', 'olivedrab4', 'purple3', 'orange3', 'cyan4', 'sienna4')):
+        g = cls.map_to_network(world.map)
+        if world.has_neutral:
+            colors = colors[:2] + (neutral_color,)
+        for idx in range(world.map.n_territories):
+            g.nodes[idx].update(
+                fillcolor=colors[world.owners[idx]],
+                width=min(.5, .1 * ((world.armies[idx] + 1) ** .5)),
+                tooltip=cls._tooltip(idx, world.map, world),
+            )
+        g.add_node('legend',
+                   pos='{},0!'.format(g.graph['size'] * .5),
+                   shape='none',
+                   label='<Players: {}>'.format(', '.join(
+                       '<FONT COLOR="{}">{}</FONT>'.format(
+                           colors[idx],
+                           ('<U>{}</U>' if idx == player_index else '{}').format(
+                               html.escape(cls._clip_string(name, 12))))
+                       for idx, name in enumerate(world.player_names)
+                   )))
+        return g
+
+    @classmethod
+    def event_to_network(cls, event, **kwargs):
+        g = cls.world_to_network(event.state.world, player_index=event.state.player_index, **kwargs)
+        if event.method == 'place':
+            g.nodes[event.result].update(color='red2', penwidth=4)
+        if event.method == 'reinforce':
+            for idx, count in event.result.items():
+                g.nodes[idx].update(color='red2', penwidth=4,
+                                    tooltip=cls._tooltip(idx, event.state.map, event.state.world, reinforcements=count))
+        if event.method == 'act':
+            action = event.result
+            if isinstance(action, (Attack, Move)):
+                g.edges[event.result.from_, event.result.to].update(
+                    color='red', fontcolor='red2', style='solid' if isinstance(action, Attack) else 'dashed',
+                    penwidth=4,
+                    dir='forward' if event.result.from_ < event.result.to else 'back',
+                    label='{} '.format(action.count),
+                    tooltip='{}({})'.format(action.__class__.__name__, action.count),
+                    fontsize='18.0', fontname='bold')
+        return g
+
+    @staticmethod
+    def to_svg(g):
+        return nx.nx_agraph.to_agraph(g).draw(prog='neato', format='svg').decode('utf8')
 
 
 # Basic data ################################################################################
@@ -15,7 +107,7 @@ class Map:
     """Unchanging data about the topology & behaviour of the map being played."""
     def __init__(self, name, continent_names, continent_values,
                  territory_names, continents, edges,
-                 initial_armies, max_turns):
+                 initial_armies, max_turns, layout):
         self.name = name
         """`str` -- human-readable name for the map"""
         self.continent_names = continent_names
@@ -33,10 +125,15 @@ class Map:
         """`{int: int}` -- maps number of players to initial number of armies to place"""
         self.max_turns = max_turns
         """`int` -- maximum number of turns allowed in a game, before declaring a draw"""
+        self.layout = layout
+        """`[(float, float)] or None -- (x,y) territory positions"""
 
     def __repr__(self):
         return 'Map[name={}, territories={}, continents={}]'.format(
             self.name, self.n_territories, self.n_continents)
+
+    def _repr_svg_(self):
+        return _View.to_svg(_View.map_to_network(self))
 
     @property
     def n_territories(self):
@@ -60,6 +157,7 @@ class Map:
         continent_names, continent_values = zip(*d['continents'])
         territory_names, continents_, edges_ = zip(*d['territories'])
         initial_armies = {idx+2: count for idx, count in enumerate(d['initial_armies'])}
+        layout = [tuple(d['layout'].get(t, [])) for t in territory_names] if 'layout' in d else None  # TODO
         return cls(name=d['name'],
                    continent_names=continent_names,
                    continent_values=continent_values,
@@ -67,7 +165,8 @@ class Map:
                    continents=tuple(continent_names.index(t) for t in continents_),
                    edges=tuple(set(territory_names.index(i) for i in t) for t in edges_),
                    initial_armies=initial_armies,
-                   max_turns=d['max_turns'])
+                   max_turns=d['max_turns'],
+                   layout=layout)
 
     @classmethod
     def load_file(cls, path):
@@ -99,6 +198,19 @@ class World:
         self.eliminated_players = []
         """`[int]` -- list of player indices who have been eliminated from the
                       game, in order of elimination (does not include neutral)"""
+        self.event_log = []
+        """`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &
+        actions of every other agent"""
+
+    def __repr__(self):
+        return 'World[map={}, players={}]'.format(self.map, self.n_players)
+
+    def _repr_svg_(self):
+        return _View.to_svg(_View.world_to_network(self))
+
+    def _add_event(self, event):
+        self.event_log.append(event._replace(agent=str(event.agent)))
+        return event
 
     @property
     def n_players(self):
@@ -154,6 +266,9 @@ class PlayerState:
             my_armies, sum(self.world.armies),
             len(self.cards),
         )
+
+    def _repr_svg_(self):
+        return _View.to_svg(_View.world_to_network(self.world, player_index=self.player_index))
 
     @property
     def map(self):
@@ -249,7 +364,7 @@ SET_MATCHING_TERRITORY_BONUS = 2
 
 
 Event = collections.namedtuple('Event', ('agent', 'state', 'method', 'args', 'result'))
-Event.__doc__ = """A decision made by an agents in the game.
+Event.__doc__ = """A decision made by an agent in the game.
 
 Events are generated when iterating through a `Game`, for example:
 
@@ -275,6 +390,10 @@ Event.result.__doc__ = """`*` -- result returned by the agent (see `Agent` metho
 
 (e.g. `Attack`, `Move` or reinforcement dictionary)
 """
+
+def _event_repr_svg_(self):
+    return _View.to_svg(_View.event_to_network(self))
+Event._repr_svg_ =  _event_repr_svg_
 
 
 # Agent ################################################################################
@@ -525,7 +644,7 @@ def _placement_phase(world, agents_and_states, rand):
                 assert world.armies[placement] == 0
             else:
                 placement = _ValidatingAgent(agent).place(state)
-                yield Event(agent, state, 'place', {}, placement)
+                yield world._add_event(Event(agent, state, 'place', {}, placement))
             world.owners[placement] = state.player_index
             world.armies[placement] += 1
 
@@ -569,7 +688,7 @@ def _reinforce(agent, state, deck):
     # 3. From cards
     if 3 <= len(state.cards):
         set_ = _ValidatingAgent(agent).redeem(state)
-        yield Event(agent, state, 'redeem', {}, set_)
+        yield state.world._add_event(Event(agent, state, 'redeem', {}, set_))
         if set_:
             for card in set_:
                 if state.world.owners[card.territory] == state.player_index:
@@ -581,7 +700,8 @@ def _reinforce(agent, state, deck):
 
     # Apply reinforcements
     destinations = _ValidatingAgent(agent).reinforce(state, count=general_reinforcements)
-    yield Event(agent, state, 'reinforce', dict(count=general_reinforcements), destinations)
+    yield state.world._add_event(
+        Event(agent, state, 'reinforce', dict(count=general_reinforcements), destinations))
     for territory, count in destinations.items():
         state.world.armies[territory] += count
 
@@ -594,7 +714,7 @@ def _attack_and_move(agent, state, deck, agents_and_states, rand):
     earned_card = False
     while True:
         action = _ValidatingAgent(agent).act(state, earned_card=earned_card)
-        yield Event(agent, state, 'act', dict(earned_card=earned_card), action)
+        yield state.world._add_event(Event(agent, state, 'act', dict(earned_card=earned_card), action))
         if action is None:
             break  # end of turn
 
