@@ -7,6 +7,12 @@ import random
 import sys
 import math
 import html
+import multiprocessing
+import os
+import time
+import subprocess
+import tempfile
+import IPython.display
 import itertools as it
 import networkx as nx
 
@@ -35,9 +41,9 @@ class _View:
     def map_to_network(cls, map_):
         ratio = ((max(y for _, y in map_.layout) - min(y for _, y in map_.layout)) /
                  (max(x for x, _ in map_.layout) - min(x for x, _ in map_.layout)))
-        size = 2 + 1.25 * map_.n_territories ** .5
+        size = 3 + 1.2 * map_.n_territories ** .5
         g = nx.Graph(size=size, ratio=ratio, splines=True, fixedsize=True,
-                     bgcolor='gray90', pad=.5, labelfloat=True)
+                     bgcolor='gray95', pad=.5, labelfloat=True)
         g.add_nodes_from((i, dict(tooltip=cls._tooltip(i, map_),
                                   pos='{},{}!'.format(size*x, size*y),
                                   shape='circle',
@@ -97,6 +103,47 @@ class _View:
         return g
 
     @staticmethod
+    def simple_frame_time(event, place_time=0.25, reinforce_time=1, act_time=1):
+        """Return the frame time for an `Event`."""
+        if event.method == 'place':
+            return place_time
+        elif event.method == 'reinforce':
+            return reinforce_time
+        elif event.method == 'act' and event.result is not None:
+            return act_time
+        # skips redeem, act(None), as these aren't visible on the map
+
+    @classmethod
+    def game_to_video(cls, game, out_path,
+                      frame_time=None,
+                      max_processes=2 * multiprocessing.cpu_count(),
+                      poll_interval=0.01, dpi=72, fps=4):
+        if frame_time is None:
+            frame_time = cls.simple_frame_time
+        with tempfile.TemporaryDirectory() as dir:
+            with open(os.path.join(dir, 'playlist.txt'), 'w') as playlist:
+                processes = []
+                for n, event in enumerate(game):
+                    ftime = frame_time(event)
+                    if ftime:
+                        g = nx.nx_agraph.to_agraph(cls.event_to_network(event))
+                        playlist.write('file {:03d}.png\nduration {}\n'.format(n, ftime))
+                        while len(processes) >= max_processes:
+                            time.sleep(poll_interval)
+                            processes = [p for p in processes if p.poll() is None]
+                        # write to dot, then kick off conversion in a nonblocking subprocess
+                        g.write(path=os.path.join(dir, '{:03d}.dot'.format(n)))
+                        processes.append(subprocess.Popen(
+                            'dot -Kneato -Tpng -Gdpi={dpi} -o{dir}/{n:03d}.png {dir}/{n:03d}.dot'.format(
+                                dpi=dpi, dir=dir, n=n),
+                            shell=True))
+                for p in processes:
+                    p.wait()
+            subprocess.check_call('ffmpeg -y -f concat -i {playlist} -r {fps} {out}'.format(
+                playlist=playlist.name, out=out_path, fps=fps), shell=True)
+        return IPython.display.Video(out_path)
+
+    @staticmethod
     def to_svg(g):
         return nx.nx_agraph.to_agraph(g).draw(prog='neato', format='svg').decode('utf8')
 
@@ -133,7 +180,11 @@ class Map:
             self.name, self.n_territories, self.n_continents)
 
     def _repr_svg_(self):
-        return _View.to_svg(_View.map_to_network(self))
+        return _View.to_svg(self.to_network)
+
+    @property
+    def to_network(self):
+        return _View.map_to_network(self)
 
     @property
     def n_territories(self):
@@ -637,6 +688,10 @@ def _placement_phase(world, agents_and_states, rand):
     rand.shuffle(placement_order)
     empty_territories = list(range(world.map.n_territories))
     rand.shuffle(empty_territories)
+    n_players = world.n_players - world.has_neutral
+    if world.map.max_players < n_players:
+        raise ValueError('Too many players for map "{}" ({}, max: {})'.format(
+            world.map.name, n_players, world.map.max_players))
     for _ in range(world.map.initial_armies[world.n_players - world.has_neutral]):
         for agent, state in placement_order:
             if empty_territories:
@@ -857,6 +912,27 @@ class Game:
         world = World(map, [str(agent) for agent in agents_with_neutral], has_neutral=has_neutral)
         agents_and_states = [(agent, PlayerState(world, idx)) for idx, agent in enumerate(agents_with_neutral)]
         return cls(world, agents_and_states, rand=rand)
+
+    @classmethod
+    def watch(cls, map, agents, video_path, rand=random, **video_args):
+        """Watch a full game of Pre-eminence, rendering to and returning a video.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        `video_path` -- `str` -- file path to write out a video rendering of the game
+
+        `video_args` -- arguments to pass to the video renderer, valid arguments:
+
+         - `fps=4` -- frames per second
+         - `dpi=72` -- set resolution (therefore overall size of rendered video)
+         - `max_processes=8` -- number of processes to use to render frames
+
+        returns -- `IPython.display.Video` -- let IPython render this to watch the video inline
+        """
+        game = cls.start(map, agents, rand=rand)
+        return _View.game_to_video(game, video_path, **video_args)
 
     @classmethod
     def play(cls, map, agents, rand=random):

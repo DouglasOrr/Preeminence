@@ -1,6 +1,7 @@
 import pytest
 import random
 import collections
+import os
 import itertools as it
 import unittest.mock as um
 import numpy as np
@@ -87,6 +88,16 @@ def test_placement_phase_error():
     assert 'place' in str(e)
     assert 'BadMockAgent' in str(e)
     assert '0..2' in str(e)
+    assert '3' in str(e)
+
+
+def test_placement_phase_too_many_players():
+    random.seed(400)
+    map_ = preem.Map.load_file('maps/tiny3.json')
+    game = preem.Game.start(map_, [random_agent.Agent()] * 4)
+    with pytest.raises(ValueError) as e:
+        list(game)
+    assert '4' in str(e)
     assert '3' in str(e)
 
 
@@ -371,6 +382,20 @@ def test_play_game():
     assert game.world.event_log[-1]._repr_svg_()
     # game should be over
     assert len(game.result.winners) == 1 or game.world.turn == map_.max_turns
+
+
+def test_watch_game():
+    random.seed(987)
+    map_ = preem.Map.load_file('maps/tiny3.json')
+    agents = [ConsistencyCheckingAgent(random_agent.Agent()),
+              ConsistencyCheckingAgent(random_agent.Agent())]
+    name = 'test_watch_game_tmp.mp4'
+    try:
+        preem.Game.watch(map_, agents, name)
+        assert os.path.isfile(name)
+    finally:
+        if os.path.exists(name):
+            os.remove(name)
 
 
 @pytest.mark.parametrize('map_name', MAPS)
