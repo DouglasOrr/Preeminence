@@ -137,6 +137,7 @@ class _View:
                             'dot -Kneato -Tpng -Gdpi={dpi} -o{dir}/{n:03d}.png {dir}/{n:03d}.dot'.format(
                                 dpi=dpi, dir=dir, n=n),
                             shell=True))
+                playlist.write('file {:03d}.png\n'.format(n))
                 for p in processes:
                     p.wait()
             subprocess.check_call('ffmpeg -y -f concat -i {playlist} -r {fps} {out}'.format(
