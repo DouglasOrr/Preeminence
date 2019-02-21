@@ -5,6 +5,7 @@ import os
 import itertools as it
 import unittest.mock as um
 import numpy as np
+import networkx as nx
 
 import preem
 import agents.random_agent as random_agent
@@ -38,6 +39,32 @@ def test_count_reinforcements():
     assert preem.count_reinforcements(11) == 3
     assert preem.count_reinforcements(12) == 4
     assert preem.count_reinforcements(32) == 10
+
+
+# Core data tests
+
+def test_map_world_state_game_repr():
+    map_ = preem.Map.load_file('maps/tiny3.json')
+    game = preem.Game.start(map_, [random_agent.Agent()] * 2)
+    first_placement = next(game)
+
+    assert 'territories=3' in str(game.world.map)
+    assert 'continents=1' in str(game.world.map)
+    assert game.world.map._repr_svg_() is not None
+
+    assert str(game.world.map) in str(game.world)
+    assert 'players=3' in str(game.world)
+    assert game.world._repr_svg_() is not None
+
+    state = game.agents_and_states[0][1]
+    state._add_cards([1, 2, 3, 4])  # don't actually need real cards here
+    assert 'territories=1/3' in str(state)
+    assert 'armies=1/3' in str(state)
+    assert 'cards=4' in str(state)
+    assert state._repr_svg_() is not None
+
+    assert str(first_placement.state) in str(first_placement)
+    assert first_placement._repr_svg_() is not None
 
 
 # Core unit tests
@@ -77,18 +104,30 @@ def test_placement_phase_asymmetric():
     assert list(sorted(territories_by_owner.values())) == [1, 1, 2], 'someone random gets an extra territory'
 
 
+def _make_world(map_, agents):
+    world = preem.World(map_, [str(a) for a in agents], isinstance(agents[-1], preem._NeutralAgent))
+    return world, [(agent, preem.PlayerState(world, n)) for n, agent in enumerate(agents)]
+
+
 def test_placement_phase_error():
     random.seed(500)
     map_ = preem.Map.load_file('maps/tiny3.json')
-    bad_agent = um.Mock(__str__=um.Mock(return_value='BadMockAgent'),
-                        place=um.Mock(return_value=3))  # out-of-bounds placement
-    game = preem.Game.start(map_, [bad_agent, random_agent.Agent(), random_agent.Agent()])
+    bad_agent = um.Mock(__str__=um.Mock(return_value='BadMockAgent'))
+    agents = [bad_agent, random_agent.Agent(), random_agent.Agent()]
+
+    world, agents_and_states = _make_world(map_, agents)
+    bad_agent.place = um.Mock(return_value=3)  # out-of-bounds placement
     with pytest.raises(ValueError) as e:
-        list(game)
-    assert 'place' in str(e)
-    assert 'BadMockAgent' in str(e)
-    assert '0..2' in str(e)
-    assert '3' in str(e)
+        list(preem._placement_phase(world, agents_and_states, random))
+    assert 'place' in str(e) and 'BadMockAgent' in str(e)
+    assert '0..2' in str(e) and '3' in str(e)
+
+    world, agents_and_states = _make_world(map_, agents)
+    bad_agent.place = um.Mock(side_effect=lambda state: state.world.owners.index(1))  # enemy territory placement
+    with pytest.raises(ValueError) as e:
+        list(preem._placement_phase(world, agents_and_states, random))
+    assert 'place' in str(e) and 'enemy' in str(e) and 'BadMockAgent' in str(e)
+    assert '1' in str(e)
 
 
 def test_placement_phase_too_many_players():
@@ -171,20 +210,40 @@ def test_reinforce_error():
     agent_0 = um.Mock(__str__=um.Mock(return_value='BadMockAgent'))
     state_0 = preem.PlayerState(world, 0)
 
-    agent_0.reinforce = um.Mock(return_value={2: 3})
-    with pytest.raises(ValueError) as e:
-        list(preem._reinforce(agent_0, state_0, um.Mock()))
-    assert 'reinforce' in str(e)
-    assert 'BadMockAgent' in str(e)
-    assert '2' in str(e)
-
+    # redeem
     C = preem.Card
-    state_0.cards = [C(2, 0), C(2, 1), C(2, 2)]
-    agent_0.redeem = um.Mock(return_value=[C(2, 0), C(2, 1), C(1, 2)])
+    state_0.cards = [C(2, 0), C(2, 1), C(1, 2)]
+    agent_0.redeem = um.Mock(return_value=[C(2, 0), C(2, 1), C(2, 2)])  # card not owned
     with pytest.raises(ValueError) as e:
         list(preem._reinforce(agent_0, state_0, um.Mock()))
-    assert 'redeem' in str(e)
-    assert 'BadMockAgent' in str(e)
+    assert 'redeem' in str(e) and 'BadMockAgent' in str(e)
+
+    agent_0.redeem = um.Mock(return_value=[C(2, 0), C(2, 1), C(1, 2)])  # not a matching set
+    with pytest.raises(ValueError) as e:
+        list(preem._reinforce(agent_0, state_0, um.Mock()))
+    assert 'redeem' in str(e) and 'BadMockAgent' in str(e)
+
+    state_0.cards = [C(2, 0), C(2, 1), C(1, 2), C(1, 0), C(0, 1), C(0, 2)]
+    agent_0.redeem = um.Mock(return_value=None)  # fail to redeem with 6 cards
+    with pytest.raises(ValueError) as e:
+        list(preem._reinforce(agent_0, state_0, um.Mock()))
+    assert 'redeem' in str(e) and 'BadMockAgent' in str(e)
+    assert '6' in str(e) and '5' in str(e)
+
+    # reinforce
+    state_0.cards = []
+    agent_0.redeem = um.Mock(return_value=None)
+
+    agent_0.reinforce = um.Mock(return_value={2: 3})  # enemy territory
+    with pytest.raises(ValueError) as e:
+        list(preem._reinforce(agent_0, state_0, um.Mock()))
+    assert 'reinforce' in str(e) and 'BadMockAgent' in str(e) and '2' in str(e)
+
+    agent_0.reinforce = um.Mock(return_value={0: 2, 1: 2})  # selected the wrong number of reinforcements
+    with pytest.raises(ValueError) as e:
+        list(preem._reinforce(agent_0, state_0, um.Mock()))
+    assert 'reinforce' in str(e) and 'BadMockAgent' in str(e)
+    assert'4' in str(e) and '3' in str(e)
 
 
 def test_attack_and_move():
@@ -241,6 +300,9 @@ def test_attack_and_move():
 
 def test_attack_and_move_error():
     map_ = preem.Map.load_file('maps/tiny4.json')
+    # disconnect (0, 2), so that there can be a "not connected" error
+    map_.edges[0].remove(2)
+    map_.edges[2].remove(0)
     world = preem.World(map_, ['p0', 'p1', 'neutral'], has_neutral=True)
     world.armies = [5, 5, 3, 5]
     world.owners = [0, 0, 1, 1]
@@ -250,9 +312,10 @@ def test_attack_and_move_error():
     agents_and_states = list(zip(agents, states))
     rand = um.Mock()
 
-    for action in [preem.Attack(1, 0, 2),  # attacking from enemy
+    for action in [preem.Attack(0, 1, 2),  # attacking from enemy
                    preem.Attack(2, 3, 2),  # attacking to friendly
                    preem.Attack(2, 1, 3),  # attacking with too many units
+                   preem.Attack(2, 0, 2),  # attacking to disconnected territory
                    preem.Move(2, 1, 2),    # moving to enemy
                    preem.Move(1, 2, 2),    # moving from enemy
                    preem.Move(2, 3, 3)]:   # moving too many units
@@ -313,6 +376,11 @@ def test_maps(map_name):
 
     # SVG repr
     assert map_._repr_svg_()
+
+    # Graph
+    g = map_.to_graph
+    assert len(g) == map_.n_territories
+    assert nx.algorithms.is_connected(g), 'can run NetworkX algorithms'
 
 
 class ConsistencyCheckingAgent(preem.Agent):
@@ -399,7 +467,7 @@ def test_watch_game():
 
 
 @pytest.mark.parametrize('map_name', MAPS)
-def test_fuzz_fair(map_name):
+def test_fuzz(map_name):
     random.seed(100)
     map_ = preem.Map.load_file('maps/{}.json'.format(map_name))
     rand_agent = ConsistencyCheckingAgent(random_agent.Agent())

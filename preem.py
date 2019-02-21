@@ -38,7 +38,7 @@ class _View:
         return tip
 
     @classmethod
-    def map_to_network(cls, map_):
+    def map_to_graph(cls, map_):
         ratio = ((max(y for _, y in map_.layout) - min(y for _, y in map_.layout)) /
                  (max(x for x, _ in map_.layout) - min(x for x, _ in map_.layout)))
         size = 3 + 1.2 * map_.n_territories ** .5
@@ -58,9 +58,9 @@ class _View:
         return g
 
     @classmethod
-    def world_to_network(cls, world, player_index=None, neutral_color='gray40',
-                         colors=('coral3', 'olivedrab4', 'purple3', 'orange3', 'cyan4', 'sienna4')):
-        g = cls.map_to_network(world.map)
+    def world_to_graph(cls, world, player_index=None, neutral_color='gray40',
+                       colors=('coral3', 'olivedrab4', 'purple3', 'orange3', 'cyan4', 'sienna4')):
+        g = cls.map_to_graph(world.map)
         if world.has_neutral:
             colors = colors[:2] + (neutral_color,)
         for idx in range(world.map.n_territories):
@@ -82,8 +82,8 @@ class _View:
         return g
 
     @classmethod
-    def event_to_network(cls, event, **kwargs):
-        g = cls.world_to_network(event.state.world, player_index=event.state.player_index, **kwargs)
+    def event_to_graph(cls, event, **kwargs):
+        g = cls.world_to_graph(event.state.world, player_index=event.state.player_index, **kwargs)
         if event.method == 'place':
             g.nodes[event.result].update(color='red2', penwidth=4)
         if event.method == 'reinforce':
@@ -126,7 +126,7 @@ class _View:
                 for n, event in enumerate(game):
                     ftime = frame_time(event)
                     if ftime:
-                        g = nx.nx_agraph.to_agraph(cls.event_to_network(event))
+                        g = nx.nx_agraph.to_agraph(cls.event_to_graph(event))
                         playlist.write('file {:03d}.png\nduration {}\n'.format(n, ftime))
                         while len(processes) >= max_processes:
                             time.sleep(poll_interval)
@@ -180,11 +180,11 @@ class Map:
             self.name, self.n_territories, self.n_continents)
 
     def _repr_svg_(self):
-        return _View.to_svg(self.to_network)
+        return _View.to_svg(self.to_graph)
 
     @property
-    def to_network(self):
-        return _View.map_to_network(self)
+    def to_graph(self):
+        return _View.map_to_graph(self)
 
     @property
     def n_territories(self):
@@ -257,7 +257,7 @@ class World:
         return 'World[map={}, players={}]'.format(self.map, self.n_players)
 
     def _repr_svg_(self):
-        return _View.to_svg(_View.world_to_network(self))
+        return _View.to_svg(_View.world_to_graph(self))
 
     def _add_event(self, event):
         self.event_log.append(event._replace(agent=str(event.agent)))
@@ -319,7 +319,7 @@ class PlayerState:
         )
 
     def _repr_svg_(self):
-        return _View.to_svg(_View.world_to_network(self.world, player_index=self.player_index))
+        return _View.to_svg(_View.world_to_graph(self.world, player_index=self.player_index))
 
     @property
     def map(self):
@@ -443,7 +443,7 @@ Event.result.__doc__ = """`*` -- result returned by the agent (see `Agent` metho
 """
 
 def _event_repr_svg_(self):
-    return _View.to_svg(_View.event_to_network(self))
+    return _View.to_svg(_View.event_to_graph(self))
 Event._repr_svg_ =  _event_repr_svg_
 
 
@@ -547,9 +547,6 @@ class _ValidatingAgent(Agent):
     def __init__(self, agent):
         self.agent = agent
 
-    def __str__(self):
-        return '_ValidatingAgent({})'.format(self.agent)
-
     def _error(self, message, *fmt_args):
         return ValueError('Agent {}: {}'.format(self.agent, message.format(*fmt_args)))
 
@@ -568,21 +565,19 @@ class _ValidatingAgent(Agent):
         if set_ and not all(card in state.cards for card in set_):
             raise self._error('does not own all redeemed cards {}', set_)
         if set_ and not is_matching_set(set_):
-            raise self._error('selected an invalid set {}', set_)
+            raise self._error('tried to redeem an invalid set {}', set_)
         if (not set_) and 5 <= len(state.cards):
             raise self._error('with {} (>= 5) cards failed to redeem a set', len(state.cards))
         return set_
 
     def reinforce(self, state, count):
         destinations = self.agent.reinforce(state, count)
-        if not destinations:
-            raise self._error("didn't select a territory to reinforce")
+        if sum(destinations.values()) != count:
+            raise self._error('deployed an incorrect number of reinforcements ({} of {})',
+                              sum(destinations.values()), count)
         if any(state.world.owners[t] != state.player_index for t in destinations):
             raise self._error('attempted to reinforce enemy territories {}',
                               [t for t in destinations if state.world.owners[t] != state.player_index])
-        if sum(destinations.values()) < count:
-            raise self._error('deployed an incorrect number of reinforcements ({} of {})',
-                              sum(destinations.values()), count)
         return destinations
 
     def act(self, state, earned_card):
