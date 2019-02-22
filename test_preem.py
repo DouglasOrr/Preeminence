@@ -42,6 +42,32 @@ def test_count_reinforcements():
     assert preem.count_reinforcements(32) == 10
 
 
+def test_get_all_possible_attacks_or_moves():
+    world = preem.World(preem.Map.load_file('maps/mini.json'),
+                        ['one', 'two', 'three'],
+                        has_neutral=False)
+    # territory     0  1  2  3  4  5
+    world.owners = [1, 0, 1, 2, 1, 1]
+    world.armies = [5, 2, 2, 2, 1, 3]
+
+    assert set(preem.get_all_possible_attacks(preem.PlayerState(world, 1))) == {
+        preem.Attack(from_, to, count)
+        for from_, to, count in [
+                (0, 1, 4),
+                (2, 1, 1),
+                (2, 3, 1),
+                (5, 3, 2),
+        ]}
+
+    assert set(preem.get_all_possible_moves(preem.PlayerState(world, 1))) == {
+        preem.Move(from_, to, count)
+        for from_, to, count in [
+                (0, 2, 4),
+                (2, 0, 1),
+                (5, 4, 2),
+        ]}
+
+
 def test_deck():
     random.seed(642)
     map_ = preem.Map.load_file('maps/tiny4.json')
@@ -586,17 +612,18 @@ def test_watch_game():
 
 @pytest.mark.parametrize('map_name', MAPS)
 def test_fuzz(map_name):
+    SMALL_MAPS = {'mini', 'tiny3', 'tiny4'}
     random.seed(100)
     map_ = preem.Map.load_file('maps/{}.json'.format(map_name))
     rand_agent = ConsistencyCheckingAgent(random_agent.Agent())
     for n_players in range(2, map_.max_players):
         agents = [rand_agent] * n_players
-        ntrials = 10 if map_name == 'classic' else 1000
+        ntrials = 1000 if map_name in SMALL_MAPS else 10
         results = [preem.Game.play(map_, agents) for _ in range(ntrials)]
         for result in results:
             assert set(result.winners) | set(result.eliminated) == set(range(n_players))
             assert not (set(result.winners) & set(result.eliminated))
-        if map_name in {'mini', 'tiny3', 'tiny4'}:
+        if map_name in SMALL_MAPS:
             winners = dict(collections.Counter([r.outright_winner() for r in results]))  # pylint: disable=no-member
             # small maps, aggressive agents => there should normally be a winner
             n_draws = winners.pop(None, 0)

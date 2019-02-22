@@ -36,9 +36,13 @@ def run(args):
     docker(' '.join(args))
 
 
-def test(slow):
-    docker('pytest --cov=preem --no-cov-on-fail --cov-report term-missing {deselect}',
-           deselect='' if slow else '--deselect=test_preem.py::test_fuzz')
+def test(slow, filter, verbose):
+    docker('pytest {verbose} {cov_or_filter} {deselect}',
+           verbose='-v' if verbose else '',
+           deselect='' if slow else '--deselect=test_preem.py::test_fuzz',
+           cov_or_filter=('-k ' + filter
+                          if filter else
+                          ' --cov=preem --no-cov-on-fail --cov-report term-missing'))
 
 
 def check():
@@ -80,7 +84,9 @@ if __name__ == '__main__':
     p.add_argument('args', nargs='*', help='command/arguments to pass to the image')
     p.set_defaults(action=run)
     p = subs.add_parser('test', help='run unit tests')
+    p.add_argument('-v', '--verbose', action='store_true', help='make the output more verbose')
     p.add_argument('--slow', action='store_true', help='turn on slow (fuzz) tests')
+    p.add_argument('-k', '--filter', help='filter tests matching this pattern')
     p.set_defaults(action=test)
     subs.add_parser('check', help='run all checks (including slow tests)').set_defaults(action=check)
     subs.add_parser('docs', help='generate documentation').set_defaults(action=docs)

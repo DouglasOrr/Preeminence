@@ -360,15 +360,15 @@ def is_matching_set(cards):
 
 
 def get_matching_sets(cards):
-    """Helper for enumerating all matching sets of `Card`s.
+    """List all allowed matching sets from your `Card`s.
 
-    `cards` -- `[Card]` -- cards available
+    `cards` -- `[Card]` -- cards available to redeem
 
-    returns -- `iterable([Card])` -- all valid sets of 3 cards
+    returns -- `[[Card]]` -- all valid sets of 3 cards
     """
-    return (candidate
+    return [candidate
             for candidate in it.combinations(cards, 3)
-            if is_matching_set(candidate))
+            if is_matching_set(candidate)]
 
 
 def count_reinforcements(n_territories):
@@ -394,6 +394,46 @@ def value_of_set(sets_redeemed):
     if sets_redeemed <= 4:
         return 4 + 2 * sets_redeemed
     return 5 * sets_redeemed - 10
+
+
+def get_all_possible_attacks(state):
+    """Generate all possible `Attack` actions that the current player could make.
+
+    `state` -- `PlayerState` -- current player state
+
+    returns -- [`Attack`] -- all valid attacks (with `count` set to the maximum allowed count
+                             e.g. if `Attack(2, 5, count=4)` is returned, then trivially
+                             `Attack(2, 5, count=3)` is also allowed)
+    """
+    # not the tidiest way to write this, but it's a performance hotpot, so optimized
+    player_index = state.player_index
+    edges, owners, armies = state.map.edges, state.world.owners, state.world.armies
+    return [Attack(src, dest, armies[src] - 1)
+            for src in (src for src in range(state.map.n_territories)
+                        if owners[src] == player_index
+                        and armies[src] > 1)
+            for dest in edges[src]
+            if owners[dest] != player_index]
+
+
+def get_all_possible_moves(state):
+    """Generate all possible `Move` actions that the current player could make.
+
+    `state` -- `PlayerState` -- current player state
+
+    returns -- [`Move`] -- all valid attacks (with `count` set to the maximum allowed count
+                           e.g. if `Move(2, 5, count=4)` is returned, then trivially
+                           `Move(2, 5, count=3)` is also allowed)
+    """
+    # not the tidiest way to write this, but it's a performance hotpot, so optimized
+    player_index = state.player_index
+    edges, owners, armies = state.map.edges, state.world.owners, state.world.armies
+    return [Move(src, dest, armies[src] - 1)
+            for src in (src for src in range(state.map.n_territories)
+                        if owners[src] == player_index
+                        and armies[src] > 1)
+            for dest in edges[src]
+            if owners[dest] == player_index]
 
 
 ATTACKING_ODDS = {
