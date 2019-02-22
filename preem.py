@@ -456,9 +456,10 @@ Event.result.__doc__ = """`*` -- result returned by the agent (see `Agent` metho
 (e.g. `Attack`, `Move` or reinforcement dictionary)
 """
 
+
 def _event_repr_svg_(self):
     return _View.to_svg(_View.event_to_graph(self))
-Event._repr_svg_ =  _event_repr_svg_
+Event._repr_svg_ =  _event_repr_svg_  # NOQA
 
 
 # Agent ################################################################################

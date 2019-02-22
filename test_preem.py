@@ -14,6 +14,7 @@ import agents.random_agent as random_agent
 # Utility & helper unit tests
 
 def test_game_result():
+    # pylint: disable=no-member
     assert preem.GameResult([1, 2], [3, 0]).outright_winner() is None
     assert preem.GameResult([2], [3, 1, 0]).outright_winner() == 2
 
@@ -596,7 +597,7 @@ def test_fuzz(map_name):
             assert set(result.winners) | set(result.eliminated) == set(range(n_players))
             assert not (set(result.winners) & set(result.eliminated))
         if map_name in {'mini', 'tiny3', 'tiny4'}:
-            winners = dict(collections.Counter([r.outright_winner() for r in results]))
+            winners = dict(collections.Counter([r.outright_winner() for r in results]))  # pylint: disable=no-member
             # small maps, aggressive agents => there should normally be a winner
             n_draws = winners.pop(None, 0)
             assert n_draws < 0.1 * ntrials

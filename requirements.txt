@@ -1,7 +1,9 @@
+flake8
 networkx
 numpy
 pdoc3
 pygraphviz
+pylint
 pytest
 pytest-cov
 scipy

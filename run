@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import subprocess
+import sys
+import time
+
+
+IMAGE = 'preem'
+
+
+def sh(cmd, **kwargs):
+    shell_cmd = cmd.format(**kwargs)
+    if subprocess.call(shell_cmd, shell=True):
+        sys.stderr.write('[[./run]] Command failed: {}\n'.format(shell_cmd))
+        exit(1)
+
+
+def docker(cmd, docker_detach=False, docker_args='', **kwargs):
+    docker_cmd = cmd.format(**kwargs)
+    sh('docker run {mode}'
+       ' -v `pwd`:/work -w /work -e PYTHONPATH=/work'
+       ' {docker_args}'
+       ' preem {command}',
+       command=docker_cmd,
+       mode='-d' if docker_detach else '--rm -it',
+       docker_args=docker_args)
+
+
+def build():
+    sh('docker build --rm -t {image} .', image=IMAGE)
+
+
+def run(args):
+    docker(' '.join(args))
+
+
+def test(slow):
+    docker('pytest --cov=preem --no-cov-on-fail --cov-report term-missing {deselect}',
+           deselect='' if slow else '--deselect=test_preem.py::test_fuzz')
+
+
+def check():
+    test(slow=True)
+    docker('flake8 *.py run')
+    docker('pylint --errors-only *.py run')
+
+
+def docs():
+    docker('pdoc3 --html --overwrite --html-dir docs preem || true')
+    os.rename('docs/preem.html', 'docs/index.html')
+    docker('jupyter nbconvert --execute --to html Tutorial.ipynb --output-dir docs --output tutorial')
+
+
+def notebook(port):
+    name = '$USER-preem-notebook'
+    sh('docker rm -f {name} || true', name=name)
+    docker('start-notebook.sh --port {port}',
+           docker_detach=True,
+           docker_args='--name {name} -p {port}:{port}  -e JUPYTER_ENABLE_LAB=yes'.format(
+               port=port, name=name),
+           port=port)
+
+    print('Waiting for server to start, so we can tell you your token...')
+    time.sleep(3)
+    token = subprocess.check_output(
+        'docker logs {name} 2>&1 | grep -oP \'(?<=token=)(.+)$\' | head -1'.format(name=name),
+        shell=True).decode('utf8').strip()
+    print('\nSee: http://localhost:{port}/lab?token={token}'.format(port=port, token=token))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Development runner for preem')
+    parser.set_defaults(action=lambda: parser.print_help())
+    subs = parser.add_subparsers()
+
+    subs.add_parser('build', help='build the Docker image').set_defaults(action=build)
+    p = subs.add_parser('run', help='run an arbitrary command in the image')
+    p.add_argument('args', nargs='*', help='command/arguments to pass to the image')
+    p.set_defaults(action=run)
+    p = subs.add_parser('test', help='run unit tests')
+    p.add_argument('--slow', action='store_true', help='turn on slow (fuzz) tests')
+    p.set_defaults(action=test)
+    subs.add_parser('check', help='run all checks (including slow tests)').set_defaults(action=check)
+    subs.add_parser('docs', help='generate documentation').set_defaults(action=docs)
+    p = subs.add_parser('notebook', help='run dev notebook')
+    p.add_argument('--port', default='8888', help='port to serve on')
+    p.set_defaults(action=notebook)
+
+    args = vars(parser.parse_args())
+    args.pop('action')(**args)
