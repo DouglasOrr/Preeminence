@@ -1,0 +1,2522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.5.2" />
+<title>preem API documentation</title>
+<meta name="description" content="Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy." />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}#index .two-column{column-count:2}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.name small{font-weight:normal}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase;cursor:pointer}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title"><code>preem</code> module</h1>
+</header>
+<section id="section-intro">
+<p>Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy.</p>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">&#34;&#34;&#34;Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy.&#34;&#34;&#34;
+
+
+import collections
+import json
+import random
+import sys
+import math
+import html
+import multiprocessing
+import os
+import time
+import subprocess
+import tempfile
+import itertools as it
+import networkx as nx
+
+
+class _View:
+    &#34;&#34;&#34;Helpers for viewing core data.&#34;&#34;&#34;
+    @staticmethod
+    def _clip_string(s, max_length):
+        if max_length &lt; len(s):
+            h = (max_length - 2) // 2
+            return &#39;{}..{}&#39;.format(s[:h], s[-h:])
+        return s
+
+    @classmethod
+    def _tooltip(cls, index, map_, world=None, reinforcements=None):
+        tip = &#39;#{}: {}&#39;.format(index, map_.territory_names[index])
+        if world is not None:
+            owner = world.owners[index]
+            tip += &#39;\n#{}: {}&#39;.format(owner, cls._clip_string(world.player_names[owner], 32))
+            tip += &#39;\n{} armies&#39;.format(world.armies[index])
+        if reinforcements is not None:
+            tip += &#39;\n+{} reinforcements&#39;.format(reinforcements)
+        return tip
+
+    @classmethod
+    def map_to_graph(cls, map_):
+        ratio = ((max(y for _, y in map_.layout) - min(y for _, y in map_.layout)) /
+                 (max(x for x, _ in map_.layout) - min(x for x, _ in map_.layout)))
+        size = 3 + 1.2 * map_.n_territories ** .5
+        g = nx.Graph(size=size, ratio=ratio, splines=True, fixedsize=True,
+                     bgcolor=&#39;gray95&#39;, pad=.5, labelfloat=True)
+        g.add_nodes_from((i, dict(tooltip=cls._tooltip(i, map_),
+                                  pos=&#39;{},{}!&#39;.format(size*x, size*y),
+                                  shape=&#39;circle&#39;,
+                                  label=&#39;&#39;,
+                                  style=&#39;filled&#39;,
+                                  color=&#39;black&#39;,
+                                  width=.2,
+                                  penwidth=0,
+                                  fixedsize=True))
+                         for i, (x, y) in enumerate(map_.layout))
+        g.add_edges_from(((a, b) for a, bb in enumerate(map_.edges) for b in bb if a &lt; b))
+        return g
+
+    @classmethod
+    def world_to_graph(cls, world, player_index=None, neutral_color=&#39;gray40&#39;,
+                       colors=(&#39;coral3&#39;, &#39;olivedrab4&#39;, &#39;purple3&#39;, &#39;orange3&#39;, &#39;cyan4&#39;, &#39;sienna4&#39;)):
+        g = cls.map_to_graph(world.map)
+        if world.has_neutral:
+            colors = colors[:2] + (neutral_color,)
+        for idx in range(world.map.n_territories):
+            g.nodes[idx].update(
+                fillcolor=colors[world.owners[idx]],
+                width=min(.5, .1 * ((world.armies[idx] + 1) ** .5)),
+                tooltip=cls._tooltip(idx, world.map, world),
+            )
+        g.add_node(&#39;legend&#39;,
+                   pos=&#39;{},0!&#39;.format(g.graph[&#39;size&#39;] * .5),
+                   shape=&#39;none&#39;,
+                   label=&#39;&lt;Players: {}&gt;&#39;.format(&#39;, &#39;.join(
+                       &#39;&lt;FONT COLOR=&#34;{}&#34;&gt;{}&lt;/FONT&gt;&#39;.format(
+                           colors[idx],
+                           (&#39;&lt;U&gt;{}&lt;/U&gt;&#39; if idx == player_index else &#39;{}&#39;).format(
+                               html.escape(cls._clip_string(name, 12))))
+                       for idx, name in enumerate(world.player_names)
+                   )))
+        return g
+
+    @classmethod
+    def event_to_graph(cls, event, **kwargs):
+        g = cls.world_to_graph(event.state.world, player_index=event.state.player_index, **kwargs)
+        if event.method == &#39;place&#39;:
+            g.nodes[event.result].update(color=&#39;red2&#39;, penwidth=4)
+        if event.method == &#39;reinforce&#39;:
+            for idx, count in event.result.items():
+                g.nodes[idx].update(color=&#39;red2&#39;, penwidth=4,
+                                    tooltip=cls._tooltip(idx, event.state.map, event.state.world, reinforcements=count))
+        if event.method == &#39;act&#39;:
+            action = event.result
+            if isinstance(action, (Attack, Move)):
+                g.edges[event.result.from_, event.result.to].update(
+                    color=&#39;red&#39;, fontcolor=&#39;red2&#39;, style=&#39;solid&#39; if isinstance(action, Attack) else &#39;dashed&#39;,
+                    penwidth=4,
+                    dir=&#39;forward&#39; if event.result.from_ &lt; event.result.to else &#39;back&#39;,
+                    label=&#39;{} &#39;.format(action.count),
+                    tooltip=&#39;{}({})&#39;.format(action.__class__.__name__, action.count),
+                    fontsize=&#39;18.0&#39;, fontname=&#39;bold&#39;)
+        return g
+
+    @staticmethod
+    def simple_frame_time(event, place_time=0.25, reinforce_time=1, act_time=1):
+        &#34;&#34;&#34;Return the frame time for an `Event`.&#34;&#34;&#34;
+        if event.method == &#39;place&#39;:
+            return place_time
+        elif event.method == &#39;reinforce&#39;:
+            return reinforce_time
+        elif event.method == &#39;act&#39; and event.result is not None:
+            return act_time
+        # skips redeem, act(None), as these aren&#39;t visible on the map
+
+    @classmethod
+    def game_to_video(cls, game, out_path,
+                      frame_time=None,
+                      max_processes=2 * multiprocessing.cpu_count(),
+                      poll_interval=0.01, dpi=72, fps=4):
+        if frame_time is None:
+            frame_time = cls.simple_frame_time
+        with tempfile.TemporaryDirectory() as dir:
+            with open(os.path.join(dir, &#39;playlist.txt&#39;), &#39;w&#39;) as playlist:
+                processes = []
+                for n, event in enumerate(game):
+                    ftime = frame_time(event)
+                    if ftime:
+                        g = nx.nx_agraph.to_agraph(cls.event_to_graph(event))
+                        playlist.write(&#39;file {:03d}.png\nduration {}\n&#39;.format(n, ftime))
+                        while len(processes) &gt;= max_processes:
+                            time.sleep(poll_interval)
+                            processes = [p for p in processes if p.poll() is None]
+                        # write to dot, then kick off conversion in a nonblocking subprocess
+                        g.write(path=os.path.join(dir, &#39;{:03d}.dot&#39;.format(n)))
+                        processes.append(subprocess.Popen(
+                            &#39;dot -Kneato -Tpng -Gdpi={dpi} -o{dir}/{n:03d}.png {dir}/{n:03d}.dot&#39;.format(
+                                dpi=dpi, dir=dir, n=n),
+                            shell=True))
+                playlist.write(&#39;file {:03d}.png\n&#39;.format(n))
+                for p in processes:
+                    p.wait()
+            subprocess.check_call(&#39;ffmpeg -y -f concat -i {playlist} -r {fps} {out}&#39;.format(
+                playlist=playlist.name, out=out_path, fps=fps), shell=True)
+        import IPython.display
+        return IPython.display.Video(out_path)
+
+    @staticmethod
+    def to_svg(g):
+        return nx.nx_agraph.to_agraph(g).draw(prog=&#39;neato&#39;, format=&#39;svg&#39;).decode(&#39;utf8&#39;)
+
+
+# Basic data ################################################################################
+
+class Map:
+    &#34;&#34;&#34;Unchanging data about the topology &amp; behaviour of the map being played.&#34;&#34;&#34;
+    def __init__(self, name, continent_names, continent_values,
+                 territory_names, continents, edges,
+                 initial_armies, max_turns, layout):
+        self.name = name
+        &#34;&#34;&#34;`str` -- human-readable name for the map&#34;&#34;&#34;
+        self.continent_names = continent_names
+        &#34;&#34;&#34;`[str]` -- human-readable names for the map&#34;&#34;&#34;
+        self.continent_values = continent_values
+        &#34;&#34;&#34;`[int]` -- indexed by continent ID, to give the number of reinforcements
+                      credited to an outright owner of that continent&#34;&#34;&#34;
+        self.territory_names = territory_names
+        &#34;&#34;&#34;`[str]` -- human-readable names for the territories&#34;&#34;&#34;
+        self.continents = continents
+        &#34;&#34;&#34;`[int]` -- indexed by territory ID, to give the continent ID of that territory&#34;&#34;&#34;
+        self.edges = edges
+        &#34;&#34;&#34;`[set(int)]` -- indexed by territory ID, giving a set of connected territory IDs&#34;&#34;&#34;
+        self.initial_armies = initial_armies
+        &#34;&#34;&#34;`{int: int}` -- maps number of players to initial number of armies to place&#34;&#34;&#34;
+        self.max_turns = max_turns
+        &#34;&#34;&#34;`int` -- maximum number of turns allowed in a game, before declaring a draw&#34;&#34;&#34;
+        self.layout = layout
+        &#34;&#34;&#34;`[(float, float)] or None -- (x,y) territory positions&#34;&#34;&#34;
+
+    def __repr__(self):
+        return &#39;Map[name={}, territories={}, continents={}]&#39;.format(
+            self.name, self.n_territories, self.n_continents)
+
+    def _repr_svg_(self):
+        return _View.to_svg(self.to_graph)
+
+    @property
+    def to_graph(self):
+        return _View.map_to_graph(self)
+
+    @property
+    def n_territories(self):
+        &#34;&#34;&#34;`int` -- total number of territories (so the IDs are `range(n_territories)`)&#34;&#34;&#34;
+        return len(self.territory_names)
+
+    @property
+    def n_continents(self):
+        &#34;&#34;&#34;`int` -- total number of continents (so the IDs are `range(n_continents)`)&#34;&#34;&#34;
+        return len(self.continent_names)
+
+    @property
+    def max_players(self):
+        &#34;&#34;&#34;`int` -- maximum number of players on this map&#34;&#34;&#34;
+        return max(self.initial_armies.keys())
+
+    @classmethod
+    def load(cls, f):
+        &#34;&#34;&#34;Load from a file object, which should contain a JSON world spec.&#34;&#34;&#34;
+        d = json.load(f)
+        continent_names, continent_values = zip(*d[&#39;continents&#39;])
+        territory_names, continents_, edges_ = zip(*d[&#39;territories&#39;])
+        initial_armies = {idx+2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
+        layout = [tuple(d[&#39;layout&#39;].get(t, [])) for t in territory_names] if &#39;layout&#39; in d else None  # TODO
+        return cls(name=d[&#39;name&#39;],
+                   continent_names=continent_names,
+                   continent_values=continent_values,
+                   territory_names=territory_names,
+                   continents=tuple(continent_names.index(t) for t in continents_),
+                   edges=tuple(set(territory_names.index(i) for i in t) for t in edges_),
+                   initial_armies=initial_armies,
+                   max_turns=d[&#39;max_turns&#39;],
+                   layout=layout)
+
+    @classmethod
+    def load_file(cls, path):
+        &#34;&#34;&#34;Load from a local path.&#34;&#34;&#34;
+        with open(path, &#39;r&#39;) as f:
+            return cls.load(f)
+
+
+class World:
+    &#34;&#34;&#34;On top of a `Map`, World provides the visible mutable state of the `Game` in progress.&#34;&#34;&#34;
+    def __init__(self, map, player_names, has_neutral):
+        self.map = map
+        &#34;&#34;&#34;`Map` -- constant information about the map being played&#34;&#34;&#34;
+        self.player_names = player_names
+        &#34;&#34;&#34;`[str]` -- human-readable names of the players&#34;&#34;&#34;
+        self.has_neutral = has_neutral
+        &#34;&#34;&#34;`bool` -- if true, player with ID `n_players - 1` is the neutral player in a 1v1 game&#34;&#34;&#34;
+        self.owners = [None for _ in range(map.n_territories)]
+        &#34;&#34;&#34;`[int]` -- player index of the owning player for each territory&#34;&#34;&#34;
+        self.armies = [0 for _ in range(map.n_territories)]
+        &#34;&#34;&#34;`[int]` -- number of armies on each territory&#34;&#34;&#34;
+        self.n_cards = [0 for _ in range(len(player_names))]
+        &#34;&#34;&#34;`[int]` -- number of cards in possession of each player&#34;&#34;&#34;
+        self.turn = 0
+        &#34;&#34;&#34;`int` -- turn counter&#34;&#34;&#34;
+        self.sets_redeemed = 0
+        &#34;&#34;&#34;`int` -- how many sets have been redeemed so far? (this determines the
+                    reinforcements value of the next set)&#34;&#34;&#34;
+        self.eliminated_players = []
+        &#34;&#34;&#34;`[int]` -- list of player indices who have been eliminated from the
+                      game, in order of elimination (does not include neutral)&#34;&#34;&#34;
+        self.event_log = []
+        &#34;&#34;&#34;`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &amp;
+        actions of every other agent&#34;&#34;&#34;
+
+    def __repr__(self):
+        return &#39;World[map={}, players={}]&#39;.format(self.map, self.n_players)
+
+    def _repr_svg_(self):
+        return _View.to_svg(_View.world_to_graph(self))
+
+    def _add_event(self, event):
+        self.event_log.append(event._replace(agent=str(event.agent)))
+        return event
+
+    @property
+    def n_players(self):
+        &#34;&#34;&#34;Number of players, including neutral if applicable.&#34;&#34;&#34;
+        return len(self.player_names)
+
+    def count_territories(self, owner):
+        &#34;&#34;&#34;How many territories are owned by `owner`?&#34;&#34;&#34;
+        return sum(territory_owner == owner for territory_owner in self.owners)
+
+    def territories_belonging_to(self, owner):
+        &#34;&#34;&#34;Get a list of territory IDs belonging to `owner`.&#34;&#34;&#34;
+        return [idx for idx, iowner in enumerate(self.owners) if iowner == owner]
+
+
+Card = collections.namedtuple(&#39;Card&#39;, (&#39;symbol&#39;, &#39;territory&#39;))
+Card.__doc__ = &#34;&#34;&#34;A card which can be redeemed as part of a set of 3 in return for armies.
+
+Each turn an player may earn a single card by capturing at least one territory.
+If a player knocks out another, the victor claims all of the defeated player&#39;s cards.
+&#34;&#34;&#34;
+
+
+class PlayerState:
+    &#34;&#34;&#34;The current world&#39;s state, as viewed by a specific player.&#34;&#34;&#34;
+    def __init__(self, world, player_index, cards=[]):
+        self.world = world
+        &#34;&#34;&#34;`World` -- the world&#39;s visible state&#34;&#34;&#34;
+        self.player_index = player_index
+        &#34;&#34;&#34;`int` -- ID of this player in the wider world, i.e.
+                    if `world.owners[4] == player_index`, then this player owns territory `4`&#34;&#34;&#34;
+        self.cards = cards.copy()
+        &#34;&#34;&#34;[`Card`] -- list of cards owned by the player&#34;&#34;&#34;
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def _add_cards(self, cards_to_add):
+        &#34;&#34;&#34;Add cards to this player (e.g. earning by attacking, or conquering).&#34;&#34;&#34;
+        self.cards += cards_to_add
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def _remove_cards(self, cards_to_remove):
+        &#34;&#34;&#34;Remove cards from this player (e.g. after redeeming a set).&#34;&#34;&#34;
+        for card in cards_to_remove:
+            self.cards.remove(card)
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def __repr__(self):
+        my_territories = self.my_territories
+        my_armies = sum(self.world.armies[t] for t in my_territories)
+        return &#39;PlayerState[index={}, territories={}/{}, armies={}/{}, cards={}]&#39;.format(
+            self.player_index,
+            len(my_territories), self.map.n_territories,
+            my_armies, sum(self.world.armies),
+            len(self.cards),
+        )
+
+    def _repr_svg_(self):
+        return _View.to_svg(_View.world_to_graph(self.world, player_index=self.player_index))
+
+    @property
+    def map(self):
+        &#34;&#34;&#34;`Map` -- shortcut to get to the map&#34;&#34;&#34;
+        return self.world.map
+
+    @property
+    def my_territories(self):
+        &#34;&#34;&#34;`[int]` -- a list of all territory IDs which currently belong to this player&#34;&#34;&#34;
+        return self.world.territories_belonging_to(self.player_index)
+
+
+def is_matching_set(cards):
+    &#34;&#34;&#34;Determine if the set of 3 `Card`s defines a valid matching set.
+
+    A set is matching if the cards are all the same or all different.
+
+    `cards` -- `[Card]` -- cards to check
+
+    returns -- `bool` -- true if the cards match
+    &#34;&#34;&#34;
+    symbols = set(card.symbol for card in cards)
+    return len(cards) == 3 and (len(symbols) == 1 or len(symbols) == len(cards))
+
+
+def get_matching_sets(cards):
+    &#34;&#34;&#34;Helper for enumerating all matching sets of `Card`s.
+
+    `cards` -- `[Card]` -- cards available
+
+    returns -- `iterable([Card])` -- all valid sets of 3 cards
+    &#34;&#34;&#34;
+    return (candidate
+            for candidate in it.combinations(cards, 3)
+            if is_matching_set(candidate))
+
+
+def count_reinforcements(n_territories):
+    &#34;&#34;&#34;How many territory-generated reinforcements would I receive with this many territories?
+
+    Note that your total number of reinforcements will also include armies from redeemed sets
+    and from any fully owned continents.
+
+    `n_territories` -- `int` -- number of territories owned by the player
+
+    returns -- `int` -- number of reinforcement armies awarded from basic territory count
+    &#34;&#34;&#34;
+    return max(3, n_territories // 3)
+
+
+def value_of_set(sets_redeemed):
+    &#34;&#34;&#34;How many reinforcements will be generated from the next set to be redeemed?
+
+    `sets_redeemed` -- `int` -- number of sets redeemed so far
+
+    returns -- `int` -- number of reinforcement armies awarded for the next set
+    &#34;&#34;&#34;
+    if sets_redeemed &lt;= 4:
+        return 4 + 2 * sets_redeemed
+    return 5 * sets_redeemed - 10
+
+
+ATTACKING_ODDS = {
+    (1, 1): (((0, 1), (1, 0)),
+             (15/36, 21/36)),
+    (2, 1): (((0, 1), (1, 0)),
+             (125/216, 91/216)),
+    (3, 1): (((0, 1), (1, 0)),
+             (855/1296, 441/1296)),
+    (1, 2): (((0, 1), (1, 0)),
+             (55/216, 161/216)),
+    (2, 2): (((0, 2), (1, 1), (2, 0)),
+             (295/1296, 420/1296, 581/1296)),
+    (3, 2): (((0, 2), (1, 1), (2, 0)),
+             (2890/7776, 2611/7776, 2275/7776)),
+}
+&#34;&#34;&#34;Look up a list of outcomes and probabilities for the given combat.
+
+    outcomes, probabilities = ATTACKING_ODDS[(attack_dice, defend_dice)]
+
+`attack_dice` -- `int` -- number of attacking dice thrown (1-3)
+
+`defend_dice` -- `int` -- number of defending dice thrown (1-2)
+
+`outcomes` -- `[(int, int)]` -- (attacker_losses, defender_losses)
+
+`probabilities` -- `[float]` -- probability of each outcome
+&#34;&#34;&#34;
+
+
+SET_MATCHING_TERRITORY_BONUS = 2
+&#34;&#34;&#34;The number of bonus armies awarded for owning the territory on a card of a redeemed set.&#34;&#34;&#34;
+
+
+Event = collections.namedtuple(&#39;Event&#39;, (&#39;agent&#39;, &#39;state&#39;, &#39;method&#39;, &#39;args&#39;, &#39;result&#39;))
+Event.__doc__ = &#34;&#34;&#34;A decision made by an agent in the game.
+
+Events are generated when iterating through a `Game`, for example:
+
+    for event in game:
+        print(event)
+
+Events are generated for each method call on each `Agent` instance in the game, in other words every
+time any agent is asked to make a decision.
+
+Each event is emitted by the game before it has been executed, so `state` is given as it
+is when the `agent` made the decision (e.g. if `result is Attack`, then `state` is the state before the
+attack is resolved.
+&#34;&#34;&#34;
+Event.agent.__doc__ = &#34;&#34;&#34;`Agent` -- instance taking the action&#34;&#34;&#34;
+Event.state.__doc__ = &#34;&#34;&#34;`PlayerState` -- state as the action is issued
+
+**Beware if you store this field while continuing to play out the `Game`: the mutable data contained will
+be updated as the game progresses.**
+&#34;&#34;&#34;
+Event.method.__doc__ = &#34;&#34;&#34;`str` -- name of the method called on `agent` (e.g. `&#34;act&#34;` or `&#34;reinforce&#34;`)&#34;&#34;&#34;
+Event.args.__doc__ = &#34;&#34;&#34;`dict` -- containing any other arguments passed to `agent.method`&#34;&#34;&#34;
+Event.result.__doc__ = &#34;&#34;&#34;`*` -- result returned by the agent (see `Agent` methods)
+
+(e.g. `Attack`, `Move` or reinforcement dictionary)
+&#34;&#34;&#34;
+
+def _event_repr_svg_(self):
+    return _View.to_svg(_View.event_to_graph(self))
+Event._repr_svg_ =  _event_repr_svg_
+
+
+# Agent ################################################################################
+
+Attack = collections.namedtuple(&#39;Attack&#39;, (&#39;from_&#39;, &#39;to&#39;, &#39;count&#39;))
+Attack.__doc__ = &#34;&#34;&#34;Action to launch an attack from one your territory `from_` to an enemy territory `to`.
+
+You are permitted to execute as many attacks as you like during your turn, therefore after each battle outcome
+(in which you may defeat or lose up to two armies), your agent will be asked again to `Agent.act()` until it
+returns `Move` or `None` (after which no more attacks are allowed until the next turn).
+&#34;&#34;&#34;
+Attack.from_.__doc__ = &#34;&#34;&#34;`int` -- territory ID to launch the attack from.
+
+The territory must be owned by the player (`world.owners[a.from_] == state.player_index`) and must contain
+at least `a.count+1` armies.
+&#34;&#34;&#34;
+Attack.to.__doc__ = &#34;&#34;&#34;`int` -- territory ID to launch the attack against.
+
+The territory must not be owned by the player (`world.owners[a.from_] != state.player_index`) and must be
+accessible from the `a.from_` territory (`a.to in map.edges[a.from_]`).
+&#34;&#34;&#34;
+Attack.count.__doc__ = &#34;&#34;&#34;`int` -- number of armies to attack with, then to move into `from_` in case of victory.&#34;&#34;&#34;
+
+Move = collections.namedtuple(&#39;Move&#39;, (&#39;from_&#39;, &#39;to&#39;, &#39;count&#39;))
+Move.__doc__ = &#34;&#34;&#34;Action to move troops between two adjacent territories of yours (`from_-&gt;to`).
+
+Note that this ends your turn.
+&#34;&#34;&#34;
+Move.from_.__doc__ = &#34;&#34;&#34;`int` -- territory ID to move armies from.
+
+The territory must be owned by the player (`world.owners[m.from_] == state.player_index`) and must contain
+at least `m.count+1` armies.
+&#34;&#34;&#34;
+Move.to.__doc__ = &#34;&#34;&#34;`int` -- territory ID to move armies to.
+
+The territory must be owned by the player (`world.owners[m.from_] == state.player_index`) and must be
+accessible from the `m.from_` territory (`m.to in map.edges[m.from_]`).
+&#34;&#34;&#34;
+Move.count.__doc__ = &#34;&#34;&#34;`int` -- number of armies to move.&#34;&#34;&#34;
+
+
+class Agent:
+    &#34;&#34;&#34;Autonomous agent for playing the game (extend this to create your strategic agent).&#34;&#34;&#34;
+
+    def place(self, state):
+        &#34;&#34;&#34;Place a single army on one of your territories in the world (during the initial placement phase).
+
+        This is similar to `Agent.reinforce()`, but is called multiple times before the first turn
+        of the game, in order to allocate your initial set of armies to the map, and is not called during
+        the main turn-based phase.
+
+        `state` -- `PlayerState`
+
+        returns -- `int` -- territory to place the new army on
+        &#34;&#34;&#34;
+        raise NotImplementedError
+
+    def redeem(self, state):
+        &#34;&#34;&#34;Decide whether to redeem any sets of cards you have.
+
+        Note that this method may not be called every turn (e.g. if you have fewer than 3 cards).
+
+        `state` -- `PlayerState`
+
+        returns -- `[Card] or None` -- set of cards to redeem (a subset of `state.cards`)
+        &#34;&#34;&#34;
+        raise NotImplementedError
+
+    def reinforce(self, state, count):
+        &#34;&#34;&#34;Place multiple armies on owned territories.
+
+        This method is called once each turn before `Agent.act()`, so may be used to perform
+        pre-planning of multiple actions.
+
+        `state` -- `PlayerState`
+
+        `count` -- `int` -- number of armies available
+
+        returns -- `{int: int}` -- dict mapping territory to number of armies to place
+        &#34;&#34;&#34;
+        raise NotImplementedError
+
+    def act(self, state, earned_card):
+        &#34;&#34;&#34;Take an action as part of a turn.
+
+        This method is called multiple times, until it returns a `Move` or `None` action, as the agent
+        is permitted to make any number of `Attack` actions.
+
+        `state` -- `PlayerState`
+
+        `earned_card` -- `bool` -- if true, your card has been earned this turn
+
+        returns -- `Attack or Move or None` -- action to take (see `Attack`, `Move`)
+        &#34;&#34;&#34;
+        raise NotImplementedError
+
+
+class _ValidatingAgent(Agent):
+    &#34;&#34;&#34;Wrap an Agent, with checks that throw errors if the wrapped agent tries to do something invalid.&#34;&#34;&#34;
+    def __init__(self, agent):
+        self.agent = agent
+
+    def _error(self, message, *fmt_args):
+        return ValueError(&#39;Agent {}: {}&#39;.format(self.agent, message.format(*fmt_args)))
+
+    def place(self, state):
+        placement = self.agent.place(state)
+        if not (0 &lt;= placement &lt; state.map.n_territories):
+            raise self._error(&#39;army placement out of bounds (at: {}, expected: [0..{}])&#39;,
+                              placement, state.map.n_territories - 1)
+        if state.world.owners[placement] != state.player_index:
+            raise self._error(&#39;tried to place an army on an enemy territory (at: {}, owner: {})&#39;,
+                              placement, state.world.owners[placement])
+        return placement
+
+    def redeem(self, state):
+        set_ = self.agent.redeem(state)
+        if set_ and not all(card in state.cards for card in set_):
+            raise self._error(&#39;does not own all redeemed cards {}&#39;, set_)
+        if set_ and not is_matching_set(set_):
+            raise self._error(&#39;tried to redeem an invalid set {}&#39;, set_)
+        if (not set_) and 5 &lt;= len(state.cards):
+            raise self._error(&#39;with {} (&gt;= 5) cards failed to redeem a set&#39;, len(state.cards))
+        return set_
+
+    def reinforce(self, state, count):
+        destinations = self.agent.reinforce(state, count)
+        if sum(destinations.values()) != count:
+            raise self._error(&#39;deployed an incorrect number of reinforcements ({} of {})&#39;,
+                              sum(destinations.values()), count)
+        if any(state.world.owners[t] != state.player_index for t in destinations):
+            raise self._error(&#39;attempted to reinforce enemy territories {}&#39;,
+                              [t for t in destinations if state.world.owners[t] != state.player_index])
+        return destinations
+
+    def act(self, state, earned_card):
+        action = self.agent.act(state, earned_card)
+        if action is not None:  # Attack or Move
+            if state.world.armies[action.from_] &lt;= action.count:
+                raise self._error(&#39;insufficient armies to attack/move ({}) for {}&#39;,
+                                  state.world.armies[action.from_], action)
+            if action.to not in state.map.edges[action.from_]:
+                raise self._error(&#39;territories are not connected for {}&#39;, action)
+            if state.world.owners[action.from_] != state.player_index:
+                raise self._error(&#39;attempted to attack/move from an enemy territory with {}&#39;, action)
+            if isinstance(action, Move) and state.world.owners[action.to] != state.player_index:
+                raise self._error(&#39;attempted to move to an enemy territory with {}&#39;, action)
+            if isinstance(action, Attack) and state.world.owners[action.to] == state.player_index:
+                raise self._error(&#39;attempted to attack your own territory with {}&#39;, action)
+        return action
+
+
+class FallbackAgent(Agent):
+    &#34;&#34;&#34;Wrap an Agent, with auto-fallback if the wrapped agent tries to do something invalid.
+
+    If you need to patch over a rare bug in your agent, this may be useful, but **beware**: as
+    FallbackAgent overrides your agent&#39;s behaviour in the case of errors, debugging may be hard!
+
+    - When `Agent.place()` fails, makes a random placement.
+
+    - When `Agent.redeem()` fails, does nothing unless set redemption is required (in which case
+      makes a random redemption).
+
+    - When `Agent.reinforce()` fails, makes a random reinforcement onto a single territory.
+
+    - When `Agent.act()` fails, does nothing (ending the current turn).
+    &#34;&#34;&#34;
+    def __init__(self, agent, rand=random):
+        &#34;&#34;&#34;Create a fallback agent, warns &amp; then fixes erroneous `Agent` responses.
+
+        `agent` -- `Agent` -- implementation to wrap
+
+        `rand` -- `random.RandomState` -- random generator to use for fallback behaviour
+        &#34;&#34;&#34;
+        self.agent = agent
+        self._validating_agent = _ValidatingAgent(agent)
+        self.rand = rand
+
+    def __str__(self):
+        return &#39;FallbackAgent({})&#39;.format(self.agent)
+
+    def place(self, state):
+        try:
+            return self._validating_agent.place(state)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return self.rand.choice(state.my_territories)
+
+    def redeem(self, state):
+        try:
+            return self._validating_agent.redeem(state)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return (None
+                    if len(state.cards) &lt; 5 else
+                    self.rand.choice(list(get_matching_sets(state.cards))))
+
+    def reinforce(self, state, count):
+        try:
+            return self._validating_agent.reinforce(state, count)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return {self.rand.choice(state.my_territories): count}
+
+    def act(self, state, earned_card):
+        try:
+            return self._validating_agent.act(state, earned_card)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return None
+
+
+# Game ################################################################################
+
+class _NeutralAgent(Agent):
+    &#34;&#34;&#34;A dummy agent for use in 2v2.
+
+    Only supports placing armies (cannot perform any other game actions).
+    &#34;&#34;&#34;
+    def __init__(self, rand):
+        self.rand = rand
+
+    def __repr__(self):
+        return &#39;Neutral&#39;
+
+    def place(self, state):
+        &#34;&#34;&#34;Randomly reinforce one of the territories that has the fewest armies on it.&#34;&#34;&#34;
+        territories = state.my_territories
+        min_armies = min(state.world.armies[t] for t in territories)
+        return self.rand.choice([t for t in territories if state.world.armies[t] == min_armies])
+
+
+def _placement_phase(world, agents_and_states, rand):
+    &#34;&#34;&#34;Run the territory allocation &amp; army placement phase of the game.&#34;&#34;&#34;
+    placement_order = agents_and_states.copy()
+    rand.shuffle(placement_order)
+    empty_territories = list(range(world.map.n_territories))
+    rand.shuffle(empty_territories)
+    n_players = world.n_players - world.has_neutral
+    if world.map.max_players &lt; n_players:
+        raise ValueError(&#39;Too many players for map &#34;{}&#34; ({}, max: {})&#39;.format(
+            world.map.name, n_players, world.map.max_players))
+    for _ in range(world.map.initial_armies[world.n_players - world.has_neutral]):
+        for agent, state in placement_order:
+            if empty_territories:
+                placement = empty_territories.pop()
+                assert world.armies[placement] == 0
+            else:
+                placement = _ValidatingAgent(agent).place(state)
+                yield world._add_event(Event(agent, state, &#39;place&#39;, {}, placement))
+            world.owners[placement] = state.player_index
+            world.armies[placement] += 1
+
+
+class _Deck:
+    &#34;&#34;&#34;Manages the deck of cards, and any redeemed cards which may be reshuffled into the deck.&#34;&#34;&#34;
+    def __init__(self, map_, rand):
+        # if the map has few territories, you might run out of cards, so we repeat the deck a few times
+        repetitions = math.ceil(map_.max_players * 5 / map_.n_territories)
+        self.deck = [Card(symbol, territory)
+                     for symbol, territory in zip(it.cycle([0, 1, 2]),
+                                                  (t for _ in range(repetitions)
+                                                   for t in range(map_.n_territories)))]
+        self.redeemed = []
+        self.rand = rand
+        self.rand.shuffle(self.deck)
+
+    def draw(self):
+        if not self.deck:
+            if not self.redeemed:
+                raise ValueError(&#39;Not enough cards to go around!&#39;)
+            self.deck = self.redeemed
+            self.redeemed = []
+            self.rand.shuffle(self.deck)
+        return self.deck.pop()
+
+    def redeem(self, cards):
+        self.redeemed += cards
+
+
+def _reinforce(agent, state, deck):
+    # 1. From territories
+    general_reinforcements = count_reinforcements(state.world.count_territories(state.player_index))
+
+    # 2. From continents
+    owned_continents = [True for _ in range(state.map.n_continents)]
+    for territory in range(state.map.n_territories):
+        if state.world.owners[territory] != state.player_index:
+            owned_continents[state.map.continents[territory]] = False
+    general_reinforcements += sum(owned * value
+                                  for owned, value in zip(owned_continents, state.map.continent_values))
+
+    # 3. From cards
+    if 3 &lt;= len(state.cards):
+        set_ = _ValidatingAgent(agent).redeem(state)
+        yield state.world._add_event(Event(agent, state, &#39;redeem&#39;, {}, set_))
+        if set_:
+            for card in set_:
+                if state.world.owners[card.territory] == state.player_index:
+                    state.world.armies[card.territory] += SET_MATCHING_TERRITORY_BONUS
+            deck.redeem(set_)
+            state._remove_cards(set_)
+            general_reinforcements += value_of_set(state.world.sets_redeemed)
+            state.world.sets_redeemed += 1
+
+    # Apply reinforcements
+    destinations = _ValidatingAgent(agent).reinforce(state, count=general_reinforcements)
+    yield state.world._add_event(
+        Event(agent, state, &#39;reinforce&#39;, dict(count=general_reinforcements), destinations))
+    for territory, count in destinations.items():
+        state.world.armies[territory] += count
+
+
+class _GameOverException(Exception):
+    pass
+
+
+def _attack_and_move(agent, state, deck, agents_and_states, rand):
+    earned_card = False
+    while True:
+        action = _ValidatingAgent(agent).act(state, earned_card=earned_card)
+        yield state.world._add_event(Event(agent, state, &#39;act&#39;, dict(earned_card=earned_card), action))
+        if action is None:
+            break  # end of turn
+
+        if isinstance(action, Move):
+            state.world.armies[action.from_] -= action.count
+            state.world.armies[action.to] += action.count
+            break  # end of turn
+
+        assert isinstance(action, Attack)
+        attack_dice = min(3, action.count)
+        defend_dice = min(2, state.world.armies[action.to])
+        attack_losses, defend_losses = rand.choices(*ATTACKING_ODDS[(attack_dice, defend_dice)])[0]
+        state.world.armies[action.from_] -= attack_losses
+        state.world.armies[action.to] -= defend_losses
+        if state.world.armies[action.to] == 0:
+            assert attack_losses == 0, &#34;shouldn&#39;t be possible to claim a territory while taking losses&#34;
+            state.world.armies[action.from_] -= action.count
+            state.world.armies[action.to] = action.count
+            old_owner = state.world.owners[action.to]
+            state.world.owners[action.to] = state.player_index
+            earned_card = True
+            if state.world.count_territories(old_owner) == 0:
+                if old_owner &lt; len(agents_and_states):  # i.e. not Neutral
+                    # The victor claims the cards from the eliminated player
+                    old_owner_state = agents_and_states[old_owner][1]
+                    cards_to_transfer = old_owner_state.cards.copy()
+                    state._add_cards(cards_to_transfer)
+                    old_owner_state._remove_cards(cards_to_transfer)
+                    # Eliminate &amp; test for game over
+                    state.world.eliminated_players.append(old_owner)
+                    if len(state.world.eliminated_players) == len(agents_and_states) - 1:
+                        raise _GameOverException
+
+    if earned_card:
+        state._add_cards([deck.draw()])
+
+
+def _main_phase(world, agents_and_states, rand):
+    turn_order = agents_and_states.copy()
+    rand.shuffle(turn_order)
+    deck = _Deck(world.map, rand)
+    try:
+        for turn in range(world.map.max_turns):
+            world.turn = turn
+            for agent, state in turn_order:
+                if state.player_index not in world.eliminated_players:
+                    yield from _reinforce(agent, state, deck)
+                    yield from _attack_and_move(agent, state, deck, agents_and_states, rand)
+    except _GameOverException:
+        pass
+
+
+GameResult = collections.namedtuple(&#39;GameResult&#39;, (&#39;winners&#39;, &#39;eliminated&#39;))
+GameResult.__doc__ = &#34;&#34;&#34;The outcome of a single game.&#34;&#34;&#34;
+GameResult.winners.__doc__ = &#34;&#34;&#34;`[int]` -- player IDs of game winners.
+
+This could be multiple agents (in the case of a turn-limit tie).
+&#34;&#34;&#34;
+GameResult.eliminated.__doc__ = &#34;&#34;&#34;`[int]` -- eliminated player IDs listed in order.
+
+(i.e. `eliminated[0]` = knocked out first).
+&#34;&#34;&#34;
+
+
+def _outright_winner(self):
+    &#34;&#34;&#34;Get the outright winner (if there is one, otherwise `None`).
+
+    returns -- `int or None` -- player ID of winner, if there was a single winner
+    &#34;&#34;&#34;
+    return next(iter(self.winners)) if len(self.winners) == 1 else None
+GameResult.outright_winner = _outright_winner  # NOQA
+
+
+class Game:
+    &#34;&#34;&#34;Play and optionally watch a game of Pre-eminence.
+
+    To _play_ a game &amp; get only the final outcome see `Game.play()`.
+
+    To _watch_ a game, use `Game.start()`, and use the fact that **a Game is an iterator(`Event`)**,
+    for example:
+
+        for event in Game.start(map, [agent_a, agent_b]):
+            if event.agent is agent_a and event.method == &#39;act&#39;:
+                print(event.state, event.result)
+
+    Some other useful ways of using Game as an iterator:
+
+        event = next(game)   # step through manually
+
+        event = next(e for e in game if e.agent is agent_a)   # find the next matching action
+    &#34;&#34;&#34;
+    def __init__(self, world, agents_and_states, rand):
+        self.world = world
+        &#34;&#34;&#34;`World` -- containing this game&#34;&#34;&#34;
+        self.agents_and_states = agents_and_states
+        &#34;&#34;&#34;[(`Agent`, `PlayerState`)] -- paired agents and states (including neutral)&#34;&#34;&#34;
+        self.rand = rand
+        &#34;&#34;&#34;`random.RandomState`&#34;&#34;&#34;
+        self._iter = it.chain(_placement_phase(world, agents_and_states, rand=rand),
+                              _main_phase(world,
+                                          agents_and_states[:-1] if world.has_neutral else agents_and_states,
+                                          rand=rand))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        &#34;&#34;&#34;Advance the game to the next `Event`, and return it.
+
+        Note that the `Event` object contains data that will be modified by the game the when `next()` is
+        called again.
+        &#34;&#34;&#34;
+        return next(self._iter)
+
+    @property
+    def result(self):
+        &#34;&#34;&#34;Get the `GameResult` of a finished game.
+
+        Note that this still returns a result if the game is not finished (inevitably a tie).
+        &#34;&#34;&#34;
+        winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
+        return GameResult(winners, self.world.eliminated_players)
+
+    @classmethod
+    def start(cls, map, agents, rand=random):
+        &#34;&#34;&#34;Start a game of Pre-eminence.
+
+        This includes some handling for 1v1 matches - to introduce a _neutral_ agent, which places
+        armies on territories, but will never attack either player. Therefore the returned game may contain
+        an extra agent in `agents_and_states`.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        returns -- `Game` -- running game (iterate over it to watch it progress)
+        &#34;&#34;&#34;
+        has_neutral = len(agents) == 2
+        agents_with_neutral = (list(agents) + [_NeutralAgent(rand)]) if has_neutral else agents
+        world = World(map, [str(agent) for agent in agents_with_neutral], has_neutral=has_neutral)
+        agents_and_states = [(agent, PlayerState(world, idx)) for idx, agent in enumerate(agents_with_neutral)]
+        return cls(world, agents_and_states, rand=rand)
+
+    @classmethod
+    def watch(cls, map, agents, video_path, rand=random, **video_args):
+        &#34;&#34;&#34;Watch a full game of Pre-eminence, rendering to and returning a video.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        `video_path` -- `str` -- file path to write out a video rendering of the game
+
+        `video_args` -- arguments to pass to the video renderer, valid arguments:
+
+         - `fps=4` -- frames per second
+         - `dpi=72` -- set resolution (therefore overall size of rendered video)
+         - `max_processes=8` -- number of processes to use to render frames
+
+        returns -- `IPython.display.Video` -- let IPython render this to watch the video inline
+        &#34;&#34;&#34;
+        game = cls.start(map, agents, rand=rand)
+        return _View.game_to_video(game, video_path, **video_args)
+
+    @classmethod
+    def play(cls, map, agents, rand=random):
+        &#34;&#34;&#34;Play a full game of Pre-eminence (without watching what goes on), and return the `GameResult`.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        returns -- `GameResult` -- outcome of the game (note: you may then find it simplest to
+                   call `GameResult.outright_winner()`)
+        &#34;&#34;&#34;
+        game = cls.start(map, agents, rand=rand)
+        for _ in game:
+            pass  # simply exhaust the iterator (as we&#39;re not interested in watching the game!)
+        return game.result</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-variables">Global variables</h2>
+<dl>
+<dt id="preem.ATTACKING_ODDS"><code class="name">var <span class="ident">ATTACKING_ODDS</span></code></dt>
+<dd>
+<section class="desc"><p>Look up a list of outcomes and probabilities for the given combat.</p>
+<pre><code>outcomes, probabilities = ATTACKING_ODDS[(attack_dice, defend_dice)]
+</code></pre>
+<p><code>attack_dice</code> &ndash; <code>int</code> &ndash; number of attacking dice thrown (1-3)</p>
+<p><code>defend_dice</code> &ndash; <code>int</code> &ndash; number of defending dice thrown (1-2)</p>
+<p><code>outcomes</code> &ndash; <code>[(int, int)]</code> &ndash; (attacker_losses, defender_losses)</p>
+<p><code>probabilities</code> &ndash; <code>[float]</code> &ndash; probability of each outcome</p></section>
+</dd>
+<dt id="preem.SET_MATCHING_TERRITORY_BONUS"><code class="name">var <span class="ident">SET_MATCHING_TERRITORY_BONUS</span></code></dt>
+<dd>
+<section class="desc"><p>The number of bonus armies awarded for owning the territory on a card of a redeemed set.</p></section>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="preem.count_reinforcements"><code class="name flex">
+<span>def <span class="ident">count_reinforcements</span></span>(<span>n_territories)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>How many territory-generated reinforcements would I receive with this many territories?</p>
+<p>Note that your total number of reinforcements will also include armies from redeemed sets
+and from any fully owned continents.</p>
+<p><code>n_territories</code> &ndash; <code>int</code> &ndash; number of territories owned by the player</p>
+<p>returns &ndash; <code>int</code> &ndash; number of reinforcement armies awarded from basic territory count</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def count_reinforcements(n_territories):
+    &#34;&#34;&#34;How many territory-generated reinforcements would I receive with this many territories?
+
+    Note that your total number of reinforcements will also include armies from redeemed sets
+    and from any fully owned continents.
+
+    `n_territories` -- `int` -- number of territories owned by the player
+
+    returns -- `int` -- number of reinforcement armies awarded from basic territory count
+    &#34;&#34;&#34;
+    return max(3, n_territories // 3)</code></pre>
+</details>
+</dd>
+<dt id="preem.get_matching_sets"><code class="name flex">
+<span>def <span class="ident">get_matching_sets</span></span>(<span>cards)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Helper for enumerating all matching sets of <a title="preem.Card" href="#preem.Card"><code>Card</code></a>s.</p>
+<p><code>cards</code> &ndash; <code>[Card]</code> &ndash; cards available</p>
+<p>returns &ndash; <code>iterable([Card])</code> &ndash; all valid sets of 3 cards</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def get_matching_sets(cards):
+    &#34;&#34;&#34;Helper for enumerating all matching sets of `Card`s.
+
+    `cards` -- `[Card]` -- cards available
+
+    returns -- `iterable([Card])` -- all valid sets of 3 cards
+    &#34;&#34;&#34;
+    return (candidate
+            for candidate in it.combinations(cards, 3)
+            if is_matching_set(candidate))</code></pre>
+</details>
+</dd>
+<dt id="preem.is_matching_set"><code class="name flex">
+<span>def <span class="ident">is_matching_set</span></span>(<span>cards)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Determine if the set of 3 <a title="preem.Card" href="#preem.Card"><code>Card</code></a>s defines a valid matching set.</p>
+<p>A set is matching if the cards are all the same or all different.</p>
+<p><code>cards</code> &ndash; <code>[Card]</code> &ndash; cards to check</p>
+<p>returns &ndash; <code>bool</code> &ndash; true if the cards match</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def is_matching_set(cards):
+    &#34;&#34;&#34;Determine if the set of 3 `Card`s defines a valid matching set.
+
+    A set is matching if the cards are all the same or all different.
+
+    `cards` -- `[Card]` -- cards to check
+
+    returns -- `bool` -- true if the cards match
+    &#34;&#34;&#34;
+    symbols = set(card.symbol for card in cards)
+    return len(cards) == 3 and (len(symbols) == 1 or len(symbols) == len(cards))</code></pre>
+</details>
+</dd>
+<dt id="preem.value_of_set"><code class="name flex">
+<span>def <span class="ident">value_of_set</span></span>(<span>sets_redeemed)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>How many reinforcements will be generated from the next set to be redeemed?</p>
+<p><code>sets_redeemed</code> &ndash; <code>int</code> &ndash; number of sets redeemed so far</p>
+<p>returns &ndash; <code>int</code> &ndash; number of reinforcement armies awarded for the next set</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def value_of_set(sets_redeemed):
+    &#34;&#34;&#34;How many reinforcements will be generated from the next set to be redeemed?
+
+    `sets_redeemed` -- `int` -- number of sets redeemed so far
+
+    returns -- `int` -- number of reinforcement armies awarded for the next set
+    &#34;&#34;&#34;
+    if sets_redeemed &lt;= 4:
+        return 4 + 2 * sets_redeemed
+    return 5 * sets_redeemed - 10</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="preem.Agent"><code class="flex name class">
+<span>class <span class="ident">Agent</span></span>
+</code></dt>
+<dd>
+<section class="desc"><p>Autonomous agent for playing the game (extend this to create your strategic agent).</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class Agent:
+    &#34;&#34;&#34;Autonomous agent for playing the game (extend this to create your strategic agent).&#34;&#34;&#34;
+
+    def place(self, state):
+        &#34;&#34;&#34;Place a single army on one of your territories in the world (during the initial placement phase).
+
+        This is similar to `Agent.reinforce()`, but is called multiple times before the first turn
+        of the game, in order to allocate your initial set of armies to the map, and is not called during
+        the main turn-based phase.
+
+        `state` -- `PlayerState`
+
+        returns -- `int` -- territory to place the new army on
+        &#34;&#34;&#34;
+        raise NotImplementedError
+
+    def redeem(self, state):
+        &#34;&#34;&#34;Decide whether to redeem any sets of cards you have.
+
+        Note that this method may not be called every turn (e.g. if you have fewer than 3 cards).
+
+        `state` -- `PlayerState`
+
+        returns -- `[Card] or None` -- set of cards to redeem (a subset of `state.cards`)
+        &#34;&#34;&#34;
+        raise NotImplementedError
+
+    def reinforce(self, state, count):
+        &#34;&#34;&#34;Place multiple armies on owned territories.
+
+        This method is called once each turn before `Agent.act()`, so may be used to perform
+        pre-planning of multiple actions.
+
+        `state` -- `PlayerState`
+
+        `count` -- `int` -- number of armies available
+
+        returns -- `{int: int}` -- dict mapping territory to number of armies to place
+        &#34;&#34;&#34;
+        raise NotImplementedError
+
+    def act(self, state, earned_card):
+        &#34;&#34;&#34;Take an action as part of a turn.
+
+        This method is called multiple times, until it returns a `Move` or `None` action, as the agent
+        is permitted to make any number of `Attack` actions.
+
+        `state` -- `PlayerState`
+
+        `earned_card` -- `bool` -- if true, your card has been earned this turn
+
+        returns -- `Attack or Move or None` -- action to take (see `Attack`, `Move`)
+        &#34;&#34;&#34;
+        raise NotImplementedError</code></pre>
+</details>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li>preem._ValidatingAgent</li>
+<li><a title="preem.FallbackAgent" href="#preem.FallbackAgent">FallbackAgent</a></li>
+<li>preem._NeutralAgent</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="preem.Agent.act"><code class="name flex">
+<span>def <span class="ident">act</span></span>(<span>self, state, earned_card)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Take an action as part of a turn.</p>
+<p>This method is called multiple times, until it returns a <a title="preem.Move" href="#preem.Move"><code>Move</code></a> or <code>None</code> action, as the agent
+is permitted to make any number of <a title="preem.Attack" href="#preem.Attack"><code>Attack</code></a> actions.</p>
+<p><code>state</code> &ndash; <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a></p>
+<p><code>earned_card</code> &ndash; <code>bool</code> &ndash; if true, your card has been earned this turn</p>
+<p>returns &ndash; <code>Attack or Move or None</code> &ndash; action to take (see <a title="preem.Attack" href="#preem.Attack"><code>Attack</code></a>, <a title="preem.Move" href="#preem.Move"><code>Move</code></a>)</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def act(self, state, earned_card):
+    &#34;&#34;&#34;Take an action as part of a turn.
+
+    This method is called multiple times, until it returns a `Move` or `None` action, as the agent
+    is permitted to make any number of `Attack` actions.
+
+    `state` -- `PlayerState`
+
+    `earned_card` -- `bool` -- if true, your card has been earned this turn
+
+    returns -- `Attack or Move or None` -- action to take (see `Attack`, `Move`)
+    &#34;&#34;&#34;
+    raise NotImplementedError</code></pre>
+</details>
+</dd>
+<dt id="preem.Agent.place"><code class="name flex">
+<span>def <span class="ident">place</span></span>(<span>self, state)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Place a single army on one of your territories in the world (during the initial placement phase).</p>
+<p>This is similar to <a title="preem.Agent.reinforce" href="#preem.Agent.reinforce"><code>Agent.reinforce()</code></a>, but is called multiple times before the first turn
+of the game, in order to allocate your initial set of armies to the map, and is not called during
+the main turn-based phase.</p>
+<p><code>state</code> &ndash; <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a></p>
+<p>returns &ndash; <code>int</code> &ndash; territory to place the new army on</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def place(self, state):
+    &#34;&#34;&#34;Place a single army on one of your territories in the world (during the initial placement phase).
+
+    This is similar to `Agent.reinforce()`, but is called multiple times before the first turn
+    of the game, in order to allocate your initial set of armies to the map, and is not called during
+    the main turn-based phase.
+
+    `state` -- `PlayerState`
+
+    returns -- `int` -- territory to place the new army on
+    &#34;&#34;&#34;
+    raise NotImplementedError</code></pre>
+</details>
+</dd>
+<dt id="preem.Agent.redeem"><code class="name flex">
+<span>def <span class="ident">redeem</span></span>(<span>self, state)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Decide whether to redeem any sets of cards you have.</p>
+<p>Note that this method may not be called every turn (e.g. if you have fewer than 3 cards).</p>
+<p><code>state</code> &ndash; <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a></p>
+<p>returns &ndash; <code>[Card] or None</code> &ndash; set of cards to redeem (a subset of <code>state.cards</code>)</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def redeem(self, state):
+    &#34;&#34;&#34;Decide whether to redeem any sets of cards you have.
+
+    Note that this method may not be called every turn (e.g. if you have fewer than 3 cards).
+
+    `state` -- `PlayerState`
+
+    returns -- `[Card] or None` -- set of cards to redeem (a subset of `state.cards`)
+    &#34;&#34;&#34;
+    raise NotImplementedError</code></pre>
+</details>
+</dd>
+<dt id="preem.Agent.reinforce"><code class="name flex">
+<span>def <span class="ident">reinforce</span></span>(<span>self, state, count)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Place multiple armies on owned territories.</p>
+<p>This method is called once each turn before <a title="preem.Agent.act" href="#preem.Agent.act"><code>Agent.act()</code></a>, so may be used to perform
+pre-planning of multiple actions.</p>
+<p><code>state</code> &ndash; <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a></p>
+<p><code>count</code> &ndash; <code>int</code> &ndash; number of armies available</p>
+<p>returns &ndash; <code>{int: int}</code> &ndash; dict mapping territory to number of armies to place</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def reinforce(self, state, count):
+    &#34;&#34;&#34;Place multiple armies on owned territories.
+
+    This method is called once each turn before `Agent.act()`, so may be used to perform
+    pre-planning of multiple actions.
+
+    `state` -- `PlayerState`
+
+    `count` -- `int` -- number of armies available
+
+    returns -- `{int: int}` -- dict mapping territory to number of armies to place
+    &#34;&#34;&#34;
+    raise NotImplementedError</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="preem.Attack"><code class="flex name class">
+<span>class <span class="ident">Attack</span></span>
+<span>(</span><span><small>ancestors:</small> builtins.tuple)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Action to launch an attack from one your territory <code>from_</code> to an enemy territory <code>to</code>.</p>
+<p>You are permitted to execute as many attacks as you like during your turn, therefore after each battle outcome
+(in which you may defeat or lose up to two armies), your agent will be asked again to <a title="preem.Agent.act" href="#preem.Agent.act"><code>Agent.act()</code></a> until it
+returns <a title="preem.Move" href="#preem.Move"><code>Move</code></a> or <code>None</code> (after which no more attacks are allowed until the next turn).</p></section>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.Attack.count"><code class="name">var <span class="ident">count</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; number of armies to attack with, then to move into <code>from_</code> in case of victory.</p></section>
+</dd>
+<dt id="preem.Attack.from_"><code class="name">var <span class="ident">from_</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; territory ID to launch the attack from.</p>
+<p>The territory must be owned by the player (<code>world.owners[a.from_] == state.player_index</code>) and must contain
+at least <code>a.count+1</code> armies.</p></section>
+</dd>
+<dt id="preem.Attack.to"><code class="name">var <span class="ident">to</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; territory ID to launch the attack against.</p>
+<p>The territory must not be owned by the player (<code>world.owners[a.from_] != state.player_index</code>) and must be
+accessible from the <code>a.from_</code> territory (<code>a.to in map.edges[a.from_]</code>).</p></section>
+</dd>
+</dl>
+</dd>
+<dt id="preem.Card"><code class="flex name class">
+<span>class <span class="ident">Card</span></span>
+<span>(</span><span><small>ancestors:</small> builtins.tuple)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>A card which can be redeemed as part of a set of 3 in return for armies.</p>
+<p>Each turn an player may earn a single card by capturing at least one territory.
+If a player knocks out another, the victor claims all of the defeated player's cards.</p></section>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.Card.symbol"><code class="name">var <span class="ident">symbol</span></code></dt>
+<dd>
+<section class="desc"><p>Alias for field number 0</p></section>
+</dd>
+<dt id="preem.Card.territory"><code class="name">var <span class="ident">territory</span></code></dt>
+<dd>
+<section class="desc"><p>Alias for field number 1</p></section>
+</dd>
+</dl>
+</dd>
+<dt id="preem.Event"><code class="flex name class">
+<span>class <span class="ident">Event</span></span>
+<span>(</span><span><small>ancestors:</small> builtins.tuple)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>A decision made by an agent in the game.</p>
+<p>Events are generated when iterating through a <a title="preem.Game" href="#preem.Game"><code>Game</code></a>, for example:</p>
+<pre><code>for event in game:
+    print(event)
+</code></pre>
+<p>Events are generated for each method call on each <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> instance in the game, in other words every
+time any agent is asked to make a decision.</p>
+<p>Each event is emitted by the game before it has been executed, so <code>state</code> is given as it
+is when the <code>agent</code> made the decision (e.g. if <code>result is Attack</code>, then <code>state</code> is the state before the
+attack is resolved.</p></section>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.Event.agent"><code class="name">var <span class="ident">agent</span></code></dt>
+<dd>
+<section class="desc"><p><a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> &ndash; instance taking the action</p></section>
+</dd>
+<dt id="preem.Event.args"><code class="name">var <span class="ident">args</span></code></dt>
+<dd>
+<section class="desc"><p><code>dict</code> &ndash; containing any other arguments passed to <code>agent.method</code></p></section>
+</dd>
+<dt id="preem.Event.method"><code class="name">var <span class="ident">method</span></code></dt>
+<dd>
+<section class="desc"><p><code>str</code> &ndash; name of the method called on <code>agent</code> (e.g. <code>"act"</code> or <code>"reinforce"</code>)</p></section>
+</dd>
+<dt id="preem.Event.result"><code class="name">var <span class="ident">result</span></code></dt>
+<dd>
+<section class="desc"><p><code>*</code> &ndash; result returned by the agent (see <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> methods)</p>
+<p>(e.g. <a title="preem.Attack" href="#preem.Attack"><code>Attack</code></a>, <a title="preem.Move" href="#preem.Move"><code>Move</code></a> or reinforcement dictionary)</p></section>
+</dd>
+<dt id="preem.Event.state"><code class="name">var <span class="ident">state</span></code></dt>
+<dd>
+<section class="desc"><p><a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a> &ndash; state as the action is issued</p>
+<p><strong>Beware if you store this field while continuing to play out the <a title="preem.Game" href="#preem.Game"><code>Game</code></a>: the mutable data contained will
+be updated as the game progresses.</strong></p></section>
+</dd>
+</dl>
+</dd>
+<dt id="preem.FallbackAgent"><code class="flex name class">
+<span>class <span class="ident">FallbackAgent</span></span>
+<span>(</span><span><small>ancestors:</small> <a title="preem.Agent" href="#preem.Agent">Agent</a>)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Wrap an Agent, with auto-fallback if the wrapped agent tries to do something invalid.</p>
+<p>If you need to patch over a rare bug in your agent, this may be useful, but <strong>beware</strong>: as
+FallbackAgent overrides your agent's behaviour in the case of errors, debugging may be hard!</p>
+<ul>
+<li>
+<p>When <a title="preem.Agent.place" href="#preem.Agent.place"><code>Agent.place()</code></a> fails, makes a random placement.</p>
+</li>
+<li>
+<p>When <a title="preem.Agent.redeem" href="#preem.Agent.redeem"><code>Agent.redeem()</code></a> fails, does nothing unless set redemption is required (in which case
+makes a random redemption).</p>
+</li>
+<li>
+<p>When <a title="preem.Agent.reinforce" href="#preem.Agent.reinforce"><code>Agent.reinforce()</code></a> fails, makes a random reinforcement onto a single territory.</p>
+</li>
+<li>
+<p>When <a title="preem.Agent.act" href="#preem.Agent.act"><code>Agent.act()</code></a> fails, does nothing (ending the current turn).</p>
+</li>
+</ul></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class FallbackAgent(Agent):
+    &#34;&#34;&#34;Wrap an Agent, with auto-fallback if the wrapped agent tries to do something invalid.
+
+    If you need to patch over a rare bug in your agent, this may be useful, but **beware**: as
+    FallbackAgent overrides your agent&#39;s behaviour in the case of errors, debugging may be hard!
+
+    - When `Agent.place()` fails, makes a random placement.
+
+    - When `Agent.redeem()` fails, does nothing unless set redemption is required (in which case
+      makes a random redemption).
+
+    - When `Agent.reinforce()` fails, makes a random reinforcement onto a single territory.
+
+    - When `Agent.act()` fails, does nothing (ending the current turn).
+    &#34;&#34;&#34;
+    def __init__(self, agent, rand=random):
+        &#34;&#34;&#34;Create a fallback agent, warns &amp; then fixes erroneous `Agent` responses.
+
+        `agent` -- `Agent` -- implementation to wrap
+
+        `rand` -- `random.RandomState` -- random generator to use for fallback behaviour
+        &#34;&#34;&#34;
+        self.agent = agent
+        self._validating_agent = _ValidatingAgent(agent)
+        self.rand = rand
+
+    def __str__(self):
+        return &#39;FallbackAgent({})&#39;.format(self.agent)
+
+    def place(self, state):
+        try:
+            return self._validating_agent.place(state)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return self.rand.choice(state.my_territories)
+
+    def redeem(self, state):
+        try:
+            return self._validating_agent.redeem(state)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return (None
+                    if len(state.cards) &lt; 5 else
+                    self.rand.choice(list(get_matching_sets(state.cards))))
+
+    def reinforce(self, state, count):
+        try:
+            return self._validating_agent.reinforce(state, count)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return {self.rand.choice(state.my_territories): count}
+
+    def act(self, state, earned_card):
+        try:
+            return self._validating_agent.act(state, earned_card)
+        except ValueError as e:
+            sys.stderr.write(&#39;FallbackAgent Warning: {}\n&#39;.format(e))
+            return None</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="preem.FallbackAgent.__init__"><code class="name flex">
+<span>def <span class="ident">__init__</span></span>(<span>self, agent, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Create a fallback agent, warns &amp; then fixes erroneous <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> responses.</p>
+<p><code>agent</code> &ndash; <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> &ndash; implementation to wrap</p>
+<p><code>rand</code> &ndash; <code>random.RandomState</code> &ndash; random generator to use for fallback behaviour</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def __init__(self, agent, rand=random):
+    &#34;&#34;&#34;Create a fallback agent, warns &amp; then fixes erroneous `Agent` responses.
+
+    `agent` -- `Agent` -- implementation to wrap
+
+    `rand` -- `random.RandomState` -- random generator to use for fallback behaviour
+    &#34;&#34;&#34;
+    self.agent = agent
+    self._validating_agent = _ValidatingAgent(agent)
+    self.rand = rand</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="preem.Agent" href="#preem.Agent">Agent</a></b></code>:
+<ul class="hlist">
+<li><code><a title="preem.Agent.act" href="#preem.Agent.act">act</a></code></li>
+<li><code><a title="preem.Agent.place" href="#preem.Agent.place">place</a></code></li>
+<li><code><a title="preem.Agent.redeem" href="#preem.Agent.redeem">redeem</a></code></li>
+<li><code><a title="preem.Agent.reinforce" href="#preem.Agent.reinforce">reinforce</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="preem.Game"><code class="flex name class">
+<span>class <span class="ident">Game</span></span>
+</code></dt>
+<dd>
+<section class="desc"><p>Play and optionally watch a game of Pre-eminence.</p>
+<p>To <em>play</em> a game &amp; get only the final outcome see <a title="preem.Game.play" href="#preem.Game.play"><code>Game.play()</code></a>.</p>
+<p>To <em>watch</em> a game, use <a title="preem.Game.start" href="#preem.Game.start"><code>Game.start()</code></a>, and use the fact that <strong>a Game is an iterator(<a title="preem.Event" href="#preem.Event"><code>Event</code></a>)</strong>,
+for example:</p>
+<pre><code>for event in Game.start(map, [agent_a, agent_b]):
+    if event.agent is agent_a and event.method == 'act':
+        print(event.state, event.result)
+</code></pre>
+<p>Some other useful ways of using Game as an iterator:</p>
+<pre><code>event = next(game)   # step through manually
+
+event = next(e for e in game if e.agent is agent_a)   # find the next matching action
+</code></pre></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class Game:
+    &#34;&#34;&#34;Play and optionally watch a game of Pre-eminence.
+
+    To _play_ a game &amp; get only the final outcome see `Game.play()`.
+
+    To _watch_ a game, use `Game.start()`, and use the fact that **a Game is an iterator(`Event`)**,
+    for example:
+
+        for event in Game.start(map, [agent_a, agent_b]):
+            if event.agent is agent_a and event.method == &#39;act&#39;:
+                print(event.state, event.result)
+
+    Some other useful ways of using Game as an iterator:
+
+        event = next(game)   # step through manually
+
+        event = next(e for e in game if e.agent is agent_a)   # find the next matching action
+    &#34;&#34;&#34;
+    def __init__(self, world, agents_and_states, rand):
+        self.world = world
+        &#34;&#34;&#34;`World` -- containing this game&#34;&#34;&#34;
+        self.agents_and_states = agents_and_states
+        &#34;&#34;&#34;[(`Agent`, `PlayerState`)] -- paired agents and states (including neutral)&#34;&#34;&#34;
+        self.rand = rand
+        &#34;&#34;&#34;`random.RandomState`&#34;&#34;&#34;
+        self._iter = it.chain(_placement_phase(world, agents_and_states, rand=rand),
+                              _main_phase(world,
+                                          agents_and_states[:-1] if world.has_neutral else agents_and_states,
+                                          rand=rand))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        &#34;&#34;&#34;Advance the game to the next `Event`, and return it.
+
+        Note that the `Event` object contains data that will be modified by the game the when `next()` is
+        called again.
+        &#34;&#34;&#34;
+        return next(self._iter)
+
+    @property
+    def result(self):
+        &#34;&#34;&#34;Get the `GameResult` of a finished game.
+
+        Note that this still returns a result if the game is not finished (inevitably a tie).
+        &#34;&#34;&#34;
+        winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
+        return GameResult(winners, self.world.eliminated_players)
+
+    @classmethod
+    def start(cls, map, agents, rand=random):
+        &#34;&#34;&#34;Start a game of Pre-eminence.
+
+        This includes some handling for 1v1 matches - to introduce a _neutral_ agent, which places
+        armies on territories, but will never attack either player. Therefore the returned game may contain
+        an extra agent in `agents_and_states`.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        returns -- `Game` -- running game (iterate over it to watch it progress)
+        &#34;&#34;&#34;
+        has_neutral = len(agents) == 2
+        agents_with_neutral = (list(agents) + [_NeutralAgent(rand)]) if has_neutral else agents
+        world = World(map, [str(agent) for agent in agents_with_neutral], has_neutral=has_neutral)
+        agents_and_states = [(agent, PlayerState(world, idx)) for idx, agent in enumerate(agents_with_neutral)]
+        return cls(world, agents_and_states, rand=rand)
+
+    @classmethod
+    def watch(cls, map, agents, video_path, rand=random, **video_args):
+        &#34;&#34;&#34;Watch a full game of Pre-eminence, rendering to and returning a video.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        `video_path` -- `str` -- file path to write out a video rendering of the game
+
+        `video_args` -- arguments to pass to the video renderer, valid arguments:
+
+         - `fps=4` -- frames per second
+         - `dpi=72` -- set resolution (therefore overall size of rendered video)
+         - `max_processes=8` -- number of processes to use to render frames
+
+        returns -- `IPython.display.Video` -- let IPython render this to watch the video inline
+        &#34;&#34;&#34;
+        game = cls.start(map, agents, rand=rand)
+        return _View.game_to_video(game, video_path, **video_args)
+
+    @classmethod
+    def play(cls, map, agents, rand=random):
+        &#34;&#34;&#34;Play a full game of Pre-eminence (without watching what goes on), and return the `GameResult`.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+        returns -- `GameResult` -- outcome of the game (note: you may then find it simplest to
+                   call `GameResult.outright_winner()`)
+        &#34;&#34;&#34;
+        game = cls.start(map, agents, rand=rand)
+        for _ in game:
+            pass  # simply exhaust the iterator (as we&#39;re not interested in watching the game!)
+        return game.result</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="preem.Game.play"><code class="name flex">
+<span>def <span class="ident">play</span></span>(<span>cls, map, agents, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Play a full game of Pre-eminence (without watching what goes on), and return the <a title="preem.GameResult" href="#preem.GameResult"><code>GameResult</code></a>.</p>
+<p><code>map</code> &ndash; <a title="preem.Map" href="#preem.Map"><code>Map</code></a></p>
+<p><code>agents</code> &ndash; <code>[Agent]</code> &ndash; <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> instances who are playing the game</p>
+<p>returns &ndash; <a title="preem.GameResult" href="#preem.GameResult"><code>GameResult</code></a> &ndash; outcome of the game (note: you may then find it simplest to
+call <a title="preem.GameResult.outright_winner" href="#preem.GameResult.outright_winner"><code>_outright_winner()</code></a>)</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def play(cls, map, agents, rand=random):
+    &#34;&#34;&#34;Play a full game of Pre-eminence (without watching what goes on), and return the `GameResult`.
+
+    `map` -- `Map`
+
+    `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+    returns -- `GameResult` -- outcome of the game (note: you may then find it simplest to
+               call `GameResult.outright_winner()`)
+    &#34;&#34;&#34;
+    game = cls.start(map, agents, rand=rand)
+    for _ in game:
+        pass  # simply exhaust the iterator (as we&#39;re not interested in watching the game!)
+    return game.result</code></pre>
+</details>
+</dd>
+<dt id="preem.Game.start"><code class="name flex">
+<span>def <span class="ident">start</span></span>(<span>cls, map, agents, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Start a game of Pre-eminence.</p>
+<p>This includes some handling for 1v1 matches - to introduce a <em>neutral</em> agent, which places
+armies on territories, but will never attack either player. Therefore the returned game may contain
+an extra agent in <code>agents_and_states</code>.</p>
+<p><code>map</code> &ndash; <a title="preem.Map" href="#preem.Map"><code>Map</code></a></p>
+<p><code>agents</code> &ndash; <code>[Agent]</code> &ndash; <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> instances who are playing the game</p>
+<p>returns &ndash; <a title="preem.Game" href="#preem.Game"><code>Game</code></a> &ndash; running game (iterate over it to watch it progress)</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def start(cls, map, agents, rand=random):
+    &#34;&#34;&#34;Start a game of Pre-eminence.
+
+    This includes some handling for 1v1 matches - to introduce a _neutral_ agent, which places
+    armies on territories, but will never attack either player. Therefore the returned game may contain
+    an extra agent in `agents_and_states`.
+
+    `map` -- `Map`
+
+    `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+    returns -- `Game` -- running game (iterate over it to watch it progress)
+    &#34;&#34;&#34;
+    has_neutral = len(agents) == 2
+    agents_with_neutral = (list(agents) + [_NeutralAgent(rand)]) if has_neutral else agents
+    world = World(map, [str(agent) for agent in agents_with_neutral], has_neutral=has_neutral)
+    agents_and_states = [(agent, PlayerState(world, idx)) for idx, agent in enumerate(agents_with_neutral)]
+    return cls(world, agents_and_states, rand=rand)</code></pre>
+</details>
+</dd>
+<dt id="preem.Game.watch"><code class="name flex">
+<span>def <span class="ident">watch</span></span>(<span>cls, map, agents, video_path, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;, **video_args)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Watch a full game of Pre-eminence, rendering to and returning a video.</p>
+<p><code>map</code> &ndash; <a title="preem.Map" href="#preem.Map"><code>Map</code></a></p>
+<p><code>agents</code> &ndash; <code>[Agent]</code> &ndash; <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> instances who are playing the game</p>
+<p><code>video_path</code> &ndash; <code>str</code> &ndash; file path to write out a video rendering of the game</p>
+<p><code>video_args</code> &ndash; arguments to pass to the video renderer, valid arguments:</p>
+<ul>
+<li><code>fps=4</code> &ndash; frames per second</li>
+<li><code>dpi=72</code> &ndash; set resolution (therefore overall size of rendered video)</li>
+<li><code>max_processes=8</code> &ndash; number of processes to use to render frames</li>
+</ul>
+<p>returns &ndash; <code>IPython.display.Video</code> &ndash; let IPython render this to watch the video inline</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def watch(cls, map, agents, video_path, rand=random, **video_args):
+    &#34;&#34;&#34;Watch a full game of Pre-eminence, rendering to and returning a video.
+
+    `map` -- `Map`
+
+    `agents` -- `[Agent]` -- `Agent` instances who are playing the game
+
+    `video_path` -- `str` -- file path to write out a video rendering of the game
+
+    `video_args` -- arguments to pass to the video renderer, valid arguments:
+
+     - `fps=4` -- frames per second
+     - `dpi=72` -- set resolution (therefore overall size of rendered video)
+     - `max_processes=8` -- number of processes to use to render frames
+
+    returns -- `IPython.display.Video` -- let IPython render this to watch the video inline
+    &#34;&#34;&#34;
+    game = cls.start(map, agents, rand=rand)
+    return _View.game_to_video(game, video_path, **video_args)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.Game.agents_and_states"><code class="name">var <span class="ident">agents_and_states</span></code></dt>
+<dd>
+<section class="desc"><p>[(<a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a>, <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a>)] &ndash; paired agents and states (including neutral)</p></section>
+</dd>
+<dt id="preem.Game.rand"><code class="name">var <span class="ident">rand</span></code></dt>
+<dd>
+<section class="desc"><p><code>random.RandomState</code></p></section>
+</dd>
+<dt id="preem.Game.result"><code class="name">var <span class="ident">result</span></code></dt>
+<dd>
+<section class="desc"><p>Get the <a title="preem.GameResult" href="#preem.GameResult"><code>GameResult</code></a> of a finished game.</p>
+<p>Note that this still returns a result if the game is not finished (inevitably a tie).</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def result(self):
+    &#34;&#34;&#34;Get the `GameResult` of a finished game.
+
+    Note that this still returns a result if the game is not finished (inevitably a tie).
+    &#34;&#34;&#34;
+    winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
+    return GameResult(winners, self.world.eliminated_players)</code></pre>
+</details>
+</dd>
+<dt id="preem.Game.world"><code class="name">var <span class="ident">world</span></code></dt>
+<dd>
+<section class="desc"><p><a title="preem.World" href="#preem.World"><code>World</code></a> &ndash; containing this game</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="preem.Game.__init__"><code class="name flex">
+<span>def <span class="ident">__init__</span></span>(<span>self, world, agents_and_states, rand)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Initialize self.
+See help(type(self)) for accurate signature.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def __init__(self, world, agents_and_states, rand):
+    self.world = world
+    &#34;&#34;&#34;`World` -- containing this game&#34;&#34;&#34;
+    self.agents_and_states = agents_and_states
+    &#34;&#34;&#34;[(`Agent`, `PlayerState`)] -- paired agents and states (including neutral)&#34;&#34;&#34;
+    self.rand = rand
+    &#34;&#34;&#34;`random.RandomState`&#34;&#34;&#34;
+    self._iter = it.chain(_placement_phase(world, agents_and_states, rand=rand),
+                          _main_phase(world,
+                                      agents_and_states[:-1] if world.has_neutral else agents_and_states,
+                                      rand=rand))</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="preem.GameResult"><code class="flex name class">
+<span>class <span class="ident">GameResult</span></span>
+<span>(</span><span><small>ancestors:</small> builtins.tuple)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>The outcome of a single game.</p></section>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.GameResult.eliminated"><code class="name">var <span class="ident">eliminated</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; eliminated player IDs listed in order.</p>
+<p>(i.e. <code>eliminated[0]</code> = knocked out first).</p></section>
+</dd>
+<dt id="preem.GameResult.winners"><code class="name">var <span class="ident">winners</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; player IDs of game winners.</p>
+<p>This could be multiple agents (in the case of a turn-limit tie).</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="preem.GameResult.outright_winner"><code class="name flex">
+<span>def <span class="ident">outright_winner</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Get the outright winner (if there is one, otherwise <code>None</code>).</p>
+<p>returns &ndash; <code>int or None</code> &ndash; player ID of winner, if there was a single winner</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def _outright_winner(self):
+    &#34;&#34;&#34;Get the outright winner (if there is one, otherwise `None`).
+
+    returns -- `int or None` -- player ID of winner, if there was a single winner
+    &#34;&#34;&#34;
+    return next(iter(self.winners)) if len(self.winners) == 1 else None</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="preem.Map"><code class="flex name class">
+<span>class <span class="ident">Map</span></span>
+</code></dt>
+<dd>
+<section class="desc"><p>Unchanging data about the topology &amp; behaviour of the map being played.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class Map:
+    &#34;&#34;&#34;Unchanging data about the topology &amp; behaviour of the map being played.&#34;&#34;&#34;
+    def __init__(self, name, continent_names, continent_values,
+                 territory_names, continents, edges,
+                 initial_armies, max_turns, layout):
+        self.name = name
+        &#34;&#34;&#34;`str` -- human-readable name for the map&#34;&#34;&#34;
+        self.continent_names = continent_names
+        &#34;&#34;&#34;`[str]` -- human-readable names for the map&#34;&#34;&#34;
+        self.continent_values = continent_values
+        &#34;&#34;&#34;`[int]` -- indexed by continent ID, to give the number of reinforcements
+                      credited to an outright owner of that continent&#34;&#34;&#34;
+        self.territory_names = territory_names
+        &#34;&#34;&#34;`[str]` -- human-readable names for the territories&#34;&#34;&#34;
+        self.continents = continents
+        &#34;&#34;&#34;`[int]` -- indexed by territory ID, to give the continent ID of that territory&#34;&#34;&#34;
+        self.edges = edges
+        &#34;&#34;&#34;`[set(int)]` -- indexed by territory ID, giving a set of connected territory IDs&#34;&#34;&#34;
+        self.initial_armies = initial_armies
+        &#34;&#34;&#34;`{int: int}` -- maps number of players to initial number of armies to place&#34;&#34;&#34;
+        self.max_turns = max_turns
+        &#34;&#34;&#34;`int` -- maximum number of turns allowed in a game, before declaring a draw&#34;&#34;&#34;
+        self.layout = layout
+        &#34;&#34;&#34;`[(float, float)] or None -- (x,y) territory positions&#34;&#34;&#34;
+
+    def __repr__(self):
+        return &#39;Map[name={}, territories={}, continents={}]&#39;.format(
+            self.name, self.n_territories, self.n_continents)
+
+    def _repr_svg_(self):
+        return _View.to_svg(self.to_graph)
+
+    @property
+    def to_graph(self):
+        return _View.map_to_graph(self)
+
+    @property
+    def n_territories(self):
+        &#34;&#34;&#34;`int` -- total number of territories (so the IDs are `range(n_territories)`)&#34;&#34;&#34;
+        return len(self.territory_names)
+
+    @property
+    def n_continents(self):
+        &#34;&#34;&#34;`int` -- total number of continents (so the IDs are `range(n_continents)`)&#34;&#34;&#34;
+        return len(self.continent_names)
+
+    @property
+    def max_players(self):
+        &#34;&#34;&#34;`int` -- maximum number of players on this map&#34;&#34;&#34;
+        return max(self.initial_armies.keys())
+
+    @classmethod
+    def load(cls, f):
+        &#34;&#34;&#34;Load from a file object, which should contain a JSON world spec.&#34;&#34;&#34;
+        d = json.load(f)
+        continent_names, continent_values = zip(*d[&#39;continents&#39;])
+        territory_names, continents_, edges_ = zip(*d[&#39;territories&#39;])
+        initial_armies = {idx+2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
+        layout = [tuple(d[&#39;layout&#39;].get(t, [])) for t in territory_names] if &#39;layout&#39; in d else None  # TODO
+        return cls(name=d[&#39;name&#39;],
+                   continent_names=continent_names,
+                   continent_values=continent_values,
+                   territory_names=territory_names,
+                   continents=tuple(continent_names.index(t) for t in continents_),
+                   edges=tuple(set(territory_names.index(i) for i in t) for t in edges_),
+                   initial_armies=initial_armies,
+                   max_turns=d[&#39;max_turns&#39;],
+                   layout=layout)
+
+    @classmethod
+    def load_file(cls, path):
+        &#34;&#34;&#34;Load from a local path.&#34;&#34;&#34;
+        with open(path, &#39;r&#39;) as f:
+            return cls.load(f)</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="preem.Map.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>cls, f)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Load from a file object, which should contain a JSON world spec.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def load(cls, f):
+    &#34;&#34;&#34;Load from a file object, which should contain a JSON world spec.&#34;&#34;&#34;
+    d = json.load(f)
+    continent_names, continent_values = zip(*d[&#39;continents&#39;])
+    territory_names, continents_, edges_ = zip(*d[&#39;territories&#39;])
+    initial_armies = {idx+2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
+    layout = [tuple(d[&#39;layout&#39;].get(t, [])) for t in territory_names] if &#39;layout&#39; in d else None  # TODO
+    return cls(name=d[&#39;name&#39;],
+               continent_names=continent_names,
+               continent_values=continent_values,
+               territory_names=territory_names,
+               continents=tuple(continent_names.index(t) for t in continents_),
+               edges=tuple(set(territory_names.index(i) for i in t) for t in edges_),
+               initial_armies=initial_armies,
+               max_turns=d[&#39;max_turns&#39;],
+               layout=layout)</code></pre>
+</details>
+</dd>
+<dt id="preem.Map.load_file"><code class="name flex">
+<span>def <span class="ident">load_file</span></span>(<span>cls, path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Load from a local path.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def load_file(cls, path):
+    &#34;&#34;&#34;Load from a local path.&#34;&#34;&#34;
+    with open(path, &#39;r&#39;) as f:
+        return cls.load(f)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.Map.continent_names"><code class="name">var <span class="ident">continent_names</span></code></dt>
+<dd>
+<section class="desc"><p><code>[str]</code> &ndash; human-readable names for the map</p></section>
+</dd>
+<dt id="preem.Map.continent_values"><code class="name">var <span class="ident">continent_values</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; indexed by continent ID, to give the number of reinforcements
+credited to an outright owner of that continent</p></section>
+</dd>
+<dt id="preem.Map.continents"><code class="name">var <span class="ident">continents</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; indexed by territory ID, to give the continent ID of that territory</p></section>
+</dd>
+<dt id="preem.Map.edges"><code class="name">var <span class="ident">edges</span></code></dt>
+<dd>
+<section class="desc"><p><code>[set(int)]</code> &ndash; indexed by territory ID, giving a set of connected territory IDs</p></section>
+</dd>
+<dt id="preem.Map.initial_armies"><code class="name">var <span class="ident">initial_armies</span></code></dt>
+<dd>
+<section class="desc"><p><code>{int: int}</code> &ndash; maps number of players to initial number of armies to place</p></section>
+</dd>
+<dt id="preem.Map.layout"><code class="name">var <span class="ident">layout</span></code></dt>
+<dd>
+<section class="desc"><p>`[(float, float)] or None &ndash; (x,y) territory positions</p></section>
+</dd>
+<dt id="preem.Map.max_players"><code class="name">var <span class="ident">max_players</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; maximum number of players on this map</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def max_players(self):
+    &#34;&#34;&#34;`int` -- maximum number of players on this map&#34;&#34;&#34;
+    return max(self.initial_armies.keys())</code></pre>
+</details>
+</dd>
+<dt id="preem.Map.max_turns"><code class="name">var <span class="ident">max_turns</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; maximum number of turns allowed in a game, before declaring a draw</p></section>
+</dd>
+<dt id="preem.Map.n_continents"><code class="name">var <span class="ident">n_continents</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; total number of continents (so the IDs are <code>range(n_continents)</code>)</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def n_continents(self):
+    &#34;&#34;&#34;`int` -- total number of continents (so the IDs are `range(n_continents)`)&#34;&#34;&#34;
+    return len(self.continent_names)</code></pre>
+</details>
+</dd>
+<dt id="preem.Map.n_territories"><code class="name">var <span class="ident">n_territories</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; total number of territories (so the IDs are <code>range(n_territories)</code>)</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def n_territories(self):
+    &#34;&#34;&#34;`int` -- total number of territories (so the IDs are `range(n_territories)`)&#34;&#34;&#34;
+    return len(self.territory_names)</code></pre>
+</details>
+</dd>
+<dt id="preem.Map.name"><code class="name">var <span class="ident">name</span></code></dt>
+<dd>
+<section class="desc"><p><code>str</code> &ndash; human-readable name for the map</p></section>
+</dd>
+<dt id="preem.Map.territory_names"><code class="name">var <span class="ident">territory_names</span></code></dt>
+<dd>
+<section class="desc"><p><code>[str]</code> &ndash; human-readable names for the territories</p></section>
+</dd>
+<dt id="preem.Map.to_graph"><code class="name">var <span class="ident">to_graph</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def to_graph(self):
+    return _View.map_to_graph(self)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="preem.Map.__init__"><code class="name flex">
+<span>def <span class="ident">__init__</span></span>(<span>self, name, continent_names, continent_values, territory_names, continents, edges, initial_armies, max_turns, layout)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Initialize self.
+See help(type(self)) for accurate signature.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def __init__(self, name, continent_names, continent_values,
+             territory_names, continents, edges,
+             initial_armies, max_turns, layout):
+    self.name = name
+    &#34;&#34;&#34;`str` -- human-readable name for the map&#34;&#34;&#34;
+    self.continent_names = continent_names
+    &#34;&#34;&#34;`[str]` -- human-readable names for the map&#34;&#34;&#34;
+    self.continent_values = continent_values
+    &#34;&#34;&#34;`[int]` -- indexed by continent ID, to give the number of reinforcements
+                  credited to an outright owner of that continent&#34;&#34;&#34;
+    self.territory_names = territory_names
+    &#34;&#34;&#34;`[str]` -- human-readable names for the territories&#34;&#34;&#34;
+    self.continents = continents
+    &#34;&#34;&#34;`[int]` -- indexed by territory ID, to give the continent ID of that territory&#34;&#34;&#34;
+    self.edges = edges
+    &#34;&#34;&#34;`[set(int)]` -- indexed by territory ID, giving a set of connected territory IDs&#34;&#34;&#34;
+    self.initial_armies = initial_armies
+    &#34;&#34;&#34;`{int: int}` -- maps number of players to initial number of armies to place&#34;&#34;&#34;
+    self.max_turns = max_turns
+    &#34;&#34;&#34;`int` -- maximum number of turns allowed in a game, before declaring a draw&#34;&#34;&#34;
+    self.layout = layout
+    &#34;&#34;&#34;`[(float, float)] or None -- (x,y) territory positions&#34;&#34;&#34;</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="preem.Move"><code class="flex name class">
+<span>class <span class="ident">Move</span></span>
+<span>(</span><span><small>ancestors:</small> builtins.tuple)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Action to move troops between two adjacent territories of yours (<code>from_-&gt;to</code>).</p>
+<p>Note that this ends your turn.</p></section>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.Move.count"><code class="name">var <span class="ident">count</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; number of armies to move.</p></section>
+</dd>
+<dt id="preem.Move.from_"><code class="name">var <span class="ident">from_</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; territory ID to move armies from.</p>
+<p>The territory must be owned by the player (<code>world.owners[m.from_] == state.player_index</code>) and must contain
+at least <code>m.count+1</code> armies.</p></section>
+</dd>
+<dt id="preem.Move.to"><code class="name">var <span class="ident">to</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; territory ID to move armies to.</p>
+<p>The territory must be owned by the player (<code>world.owners[m.from_] == state.player_index</code>) and must be
+accessible from the <code>m.from_</code> territory (<code>m.to in map.edges[m.from_]</code>).</p></section>
+</dd>
+</dl>
+</dd>
+<dt id="preem.PlayerState"><code class="flex name class">
+<span>class <span class="ident">PlayerState</span></span>
+</code></dt>
+<dd>
+<section class="desc"><p>The current world's state, as viewed by a specific player.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class PlayerState:
+    &#34;&#34;&#34;The current world&#39;s state, as viewed by a specific player.&#34;&#34;&#34;
+    def __init__(self, world, player_index, cards=[]):
+        self.world = world
+        &#34;&#34;&#34;`World` -- the world&#39;s visible state&#34;&#34;&#34;
+        self.player_index = player_index
+        &#34;&#34;&#34;`int` -- ID of this player in the wider world, i.e.
+                    if `world.owners[4] == player_index`, then this player owns territory `4`&#34;&#34;&#34;
+        self.cards = cards.copy()
+        &#34;&#34;&#34;[`Card`] -- list of cards owned by the player&#34;&#34;&#34;
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def _add_cards(self, cards_to_add):
+        &#34;&#34;&#34;Add cards to this player (e.g. earning by attacking, or conquering).&#34;&#34;&#34;
+        self.cards += cards_to_add
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def _remove_cards(self, cards_to_remove):
+        &#34;&#34;&#34;Remove cards from this player (e.g. after redeeming a set).&#34;&#34;&#34;
+        for card in cards_to_remove:
+            self.cards.remove(card)
+        self.world.n_cards[self.player_index] = len(self.cards)
+
+    def __repr__(self):
+        my_territories = self.my_territories
+        my_armies = sum(self.world.armies[t] for t in my_territories)
+        return &#39;PlayerState[index={}, territories={}/{}, armies={}/{}, cards={}]&#39;.format(
+            self.player_index,
+            len(my_territories), self.map.n_territories,
+            my_armies, sum(self.world.armies),
+            len(self.cards),
+        )
+
+    def _repr_svg_(self):
+        return _View.to_svg(_View.world_to_graph(self.world, player_index=self.player_index))
+
+    @property
+    def map(self):
+        &#34;&#34;&#34;`Map` -- shortcut to get to the map&#34;&#34;&#34;
+        return self.world.map
+
+    @property
+    def my_territories(self):
+        &#34;&#34;&#34;`[int]` -- a list of all territory IDs which currently belong to this player&#34;&#34;&#34;
+        return self.world.territories_belonging_to(self.player_index)</code></pre>
+</details>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.PlayerState.cards"><code class="name">var <span class="ident">cards</span></code></dt>
+<dd>
+<section class="desc"><p>[<code>Card</code>] &ndash; list of cards owned by the player</p></section>
+</dd>
+<dt id="preem.PlayerState.map"><code class="name">var <span class="ident">map</span></code></dt>
+<dd>
+<section class="desc"><p><a title="preem.Map" href="#preem.Map"><code>Map</code></a> &ndash; shortcut to get to the map</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def map(self):
+    &#34;&#34;&#34;`Map` -- shortcut to get to the map&#34;&#34;&#34;
+    return self.world.map</code></pre>
+</details>
+</dd>
+<dt id="preem.PlayerState.my_territories"><code class="name">var <span class="ident">my_territories</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; a list of all territory IDs which currently belong to this player</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def my_territories(self):
+    &#34;&#34;&#34;`[int]` -- a list of all territory IDs which currently belong to this player&#34;&#34;&#34;
+    return self.world.territories_belonging_to(self.player_index)</code></pre>
+</details>
+</dd>
+<dt id="preem.PlayerState.player_index"><code class="name">var <span class="ident">player_index</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; ID of this player in the wider world, i.e.
+if <code>world.owners[4] == player_index</code>, then this player owns territory <code>4</code></p></section>
+</dd>
+<dt id="preem.PlayerState.world"><code class="name">var <span class="ident">world</span></code></dt>
+<dd>
+<section class="desc"><p><a title="preem.World" href="#preem.World"><code>World</code></a> &ndash; the world's visible state</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="preem.PlayerState.__init__"><code class="name flex">
+<span>def <span class="ident">__init__</span></span>(<span>self, world, player_index, cards=[])</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Initialize self.
+See help(type(self)) for accurate signature.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def __init__(self, world, player_index, cards=[]):
+    self.world = world
+    &#34;&#34;&#34;`World` -- the world&#39;s visible state&#34;&#34;&#34;
+    self.player_index = player_index
+    &#34;&#34;&#34;`int` -- ID of this player in the wider world, i.e.
+                if `world.owners[4] == player_index`, then this player owns territory `4`&#34;&#34;&#34;
+    self.cards = cards.copy()
+    &#34;&#34;&#34;[`Card`] -- list of cards owned by the player&#34;&#34;&#34;
+    self.world.n_cards[self.player_index] = len(self.cards)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="preem.World"><code class="flex name class">
+<span>class <span class="ident">World</span></span>
+</code></dt>
+<dd>
+<section class="desc"><p>On top of a <a title="preem.Map" href="#preem.Map"><code>Map</code></a>, World provides the visible mutable state of the <a title="preem.Game" href="#preem.Game"><code>Game</code></a> in progress.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class World:
+    &#34;&#34;&#34;On top of a `Map`, World provides the visible mutable state of the `Game` in progress.&#34;&#34;&#34;
+    def __init__(self, map, player_names, has_neutral):
+        self.map = map
+        &#34;&#34;&#34;`Map` -- constant information about the map being played&#34;&#34;&#34;
+        self.player_names = player_names
+        &#34;&#34;&#34;`[str]` -- human-readable names of the players&#34;&#34;&#34;
+        self.has_neutral = has_neutral
+        &#34;&#34;&#34;`bool` -- if true, player with ID `n_players - 1` is the neutral player in a 1v1 game&#34;&#34;&#34;
+        self.owners = [None for _ in range(map.n_territories)]
+        &#34;&#34;&#34;`[int]` -- player index of the owning player for each territory&#34;&#34;&#34;
+        self.armies = [0 for _ in range(map.n_territories)]
+        &#34;&#34;&#34;`[int]` -- number of armies on each territory&#34;&#34;&#34;
+        self.n_cards = [0 for _ in range(len(player_names))]
+        &#34;&#34;&#34;`[int]` -- number of cards in possession of each player&#34;&#34;&#34;
+        self.turn = 0
+        &#34;&#34;&#34;`int` -- turn counter&#34;&#34;&#34;
+        self.sets_redeemed = 0
+        &#34;&#34;&#34;`int` -- how many sets have been redeemed so far? (this determines the
+                    reinforcements value of the next set)&#34;&#34;&#34;
+        self.eliminated_players = []
+        &#34;&#34;&#34;`[int]` -- list of player indices who have been eliminated from the
+                      game, in order of elimination (does not include neutral)&#34;&#34;&#34;
+        self.event_log = []
+        &#34;&#34;&#34;`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &amp;
+        actions of every other agent&#34;&#34;&#34;
+
+    def __repr__(self):
+        return &#39;World[map={}, players={}]&#39;.format(self.map, self.n_players)
+
+    def _repr_svg_(self):
+        return _View.to_svg(_View.world_to_graph(self))
+
+    def _add_event(self, event):
+        self.event_log.append(event._replace(agent=str(event.agent)))
+        return event
+
+    @property
+    def n_players(self):
+        &#34;&#34;&#34;Number of players, including neutral if applicable.&#34;&#34;&#34;
+        return len(self.player_names)
+
+    def count_territories(self, owner):
+        &#34;&#34;&#34;How many territories are owned by `owner`?&#34;&#34;&#34;
+        return sum(territory_owner == owner for territory_owner in self.owners)
+
+    def territories_belonging_to(self, owner):
+        &#34;&#34;&#34;Get a list of territory IDs belonging to `owner`.&#34;&#34;&#34;
+        return [idx for idx, iowner in enumerate(self.owners) if iowner == owner]</code></pre>
+</details>
+<h3>Instance variables</h3>
+<dl>
+<dt id="preem.World.armies"><code class="name">var <span class="ident">armies</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; number of armies on each territory</p></section>
+</dd>
+<dt id="preem.World.eliminated_players"><code class="name">var <span class="ident">eliminated_players</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; list of player indices who have been eliminated from the
+game, in order of elimination (does not include neutral)</p></section>
+</dd>
+<dt id="preem.World.event_log"><code class="name">var <span class="ident">event_log</span></code></dt>
+<dd>
+<section class="desc"><p><code>[Event]</code> &ndash; list of <a title="preem.Event" href="#preem.Event"><code>Event</code></a>s that have been generated so far - i.e. the responses &amp;
+actions of every other agent</p></section>
+</dd>
+<dt id="preem.World.has_neutral"><code class="name">var <span class="ident">has_neutral</span></code></dt>
+<dd>
+<section class="desc"><p><code>bool</code> &ndash; if true, player with ID <code>n_players - 1</code> is the neutral player in a 1v1 game</p></section>
+</dd>
+<dt id="preem.World.map"><code class="name">var <span class="ident">map</span></code></dt>
+<dd>
+<section class="desc"><p><a title="preem.Map" href="#preem.Map"><code>Map</code></a> &ndash; constant information about the map being played</p></section>
+</dd>
+<dt id="preem.World.n_cards"><code class="name">var <span class="ident">n_cards</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; number of cards in possession of each player</p></section>
+</dd>
+<dt id="preem.World.n_players"><code class="name">var <span class="ident">n_players</span></code></dt>
+<dd>
+<section class="desc"><p>Number of players, including neutral if applicable.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def n_players(self):
+    &#34;&#34;&#34;Number of players, including neutral if applicable.&#34;&#34;&#34;
+    return len(self.player_names)</code></pre>
+</details>
+</dd>
+<dt id="preem.World.owners"><code class="name">var <span class="ident">owners</span></code></dt>
+<dd>
+<section class="desc"><p><code>[int]</code> &ndash; player index of the owning player for each territory</p></section>
+</dd>
+<dt id="preem.World.player_names"><code class="name">var <span class="ident">player_names</span></code></dt>
+<dd>
+<section class="desc"><p><code>[str]</code> &ndash; human-readable names of the players</p></section>
+</dd>
+<dt id="preem.World.sets_redeemed"><code class="name">var <span class="ident">sets_redeemed</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; how many sets have been redeemed so far? (this determines the
+reinforcements value of the next set)</p></section>
+</dd>
+<dt id="preem.World.turn"><code class="name">var <span class="ident">turn</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; turn counter</p></section>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="preem.World.__init__"><code class="name flex">
+<span>def <span class="ident">__init__</span></span>(<span>self, map, player_names, has_neutral)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Initialize self.
+See help(type(self)) for accurate signature.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def __init__(self, map, player_names, has_neutral):
+    self.map = map
+    &#34;&#34;&#34;`Map` -- constant information about the map being played&#34;&#34;&#34;
+    self.player_names = player_names
+    &#34;&#34;&#34;`[str]` -- human-readable names of the players&#34;&#34;&#34;
+    self.has_neutral = has_neutral
+    &#34;&#34;&#34;`bool` -- if true, player with ID `n_players - 1` is the neutral player in a 1v1 game&#34;&#34;&#34;
+    self.owners = [None for _ in range(map.n_territories)]
+    &#34;&#34;&#34;`[int]` -- player index of the owning player for each territory&#34;&#34;&#34;
+    self.armies = [0 for _ in range(map.n_territories)]
+    &#34;&#34;&#34;`[int]` -- number of armies on each territory&#34;&#34;&#34;
+    self.n_cards = [0 for _ in range(len(player_names))]
+    &#34;&#34;&#34;`[int]` -- number of cards in possession of each player&#34;&#34;&#34;
+    self.turn = 0
+    &#34;&#34;&#34;`int` -- turn counter&#34;&#34;&#34;
+    self.sets_redeemed = 0
+    &#34;&#34;&#34;`int` -- how many sets have been redeemed so far? (this determines the
+                reinforcements value of the next set)&#34;&#34;&#34;
+    self.eliminated_players = []
+    &#34;&#34;&#34;`[int]` -- list of player indices who have been eliminated from the
+                  game, in order of elimination (does not include neutral)&#34;&#34;&#34;
+    self.event_log = []
+    &#34;&#34;&#34;`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &amp;
+    actions of every other agent&#34;&#34;&#34;</code></pre>
+</details>
+</dd>
+<dt id="preem.World.count_territories"><code class="name flex">
+<span>def <span class="ident">count_territories</span></span>(<span>self, owner)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>How many territories are owned by <code>owner</code>?</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def count_territories(self, owner):
+    &#34;&#34;&#34;How many territories are owned by `owner`?&#34;&#34;&#34;
+    return sum(territory_owner == owner for territory_owner in self.owners)</code></pre>
+</details>
+</dd>
+<dt id="preem.World.territories_belonging_to"><code class="name flex">
+<span>def <span class="ident">territories_belonging_to</span></span>(<span>self, owner)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Get a list of territory IDs belonging to <code>owner</code>.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def territories_belonging_to(self, owner):
+    &#34;&#34;&#34;Get a list of territory IDs belonging to `owner`.&#34;&#34;&#34;
+    return [idx for idx, iowner in enumerate(self.owners) if iowner == owner]</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-variables">Global variables</a></h3>
+<ul class="">
+<li><code><a title="preem.ATTACKING_ODDS" href="#preem.ATTACKING_ODDS">ATTACKING_ODDS</a></code></li>
+<li><code><a title="preem.SET_MATCHING_TERRITORY_BONUS" href="#preem.SET_MATCHING_TERRITORY_BONUS">SET_MATCHING_TERRITORY_BONUS</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="preem.count_reinforcements" href="#preem.count_reinforcements">count_reinforcements</a></code></li>
+<li><code><a title="preem.get_matching_sets" href="#preem.get_matching_sets">get_matching_sets</a></code></li>
+<li><code><a title="preem.is_matching_set" href="#preem.is_matching_set">is_matching_set</a></code></li>
+<li><code><a title="preem.value_of_set" href="#preem.value_of_set">value_of_set</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="preem.Agent" href="#preem.Agent">Agent</a></code></h4>
+<ul class="">
+<li><code><a title="preem.Agent.act" href="#preem.Agent.act">act</a></code></li>
+<li><code><a title="preem.Agent.place" href="#preem.Agent.place">place</a></code></li>
+<li><code><a title="preem.Agent.redeem" href="#preem.Agent.redeem">redeem</a></code></li>
+<li><code><a title="preem.Agent.reinforce" href="#preem.Agent.reinforce">reinforce</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.Attack" href="#preem.Attack">Attack</a></code></h4>
+<ul class="">
+<li><code><a title="preem.Attack.count" href="#preem.Attack.count">count</a></code></li>
+<li><code><a title="preem.Attack.from_" href="#preem.Attack.from_">from_</a></code></li>
+<li><code><a title="preem.Attack.to" href="#preem.Attack.to">to</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.Card" href="#preem.Card">Card</a></code></h4>
+<ul class="">
+<li><code><a title="preem.Card.symbol" href="#preem.Card.symbol">symbol</a></code></li>
+<li><code><a title="preem.Card.territory" href="#preem.Card.territory">territory</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.Event" href="#preem.Event">Event</a></code></h4>
+<ul class="">
+<li><code><a title="preem.Event.agent" href="#preem.Event.agent">agent</a></code></li>
+<li><code><a title="preem.Event.args" href="#preem.Event.args">args</a></code></li>
+<li><code><a title="preem.Event.method" href="#preem.Event.method">method</a></code></li>
+<li><code><a title="preem.Event.result" href="#preem.Event.result">result</a></code></li>
+<li><code><a title="preem.Event.state" href="#preem.Event.state">state</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.FallbackAgent" href="#preem.FallbackAgent">FallbackAgent</a></code></h4>
+<ul class="">
+<li><code><a title="preem.FallbackAgent.__init__" href="#preem.FallbackAgent.__init__">__init__</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.Game" href="#preem.Game">Game</a></code></h4>
+<ul class="two-column">
+<li><code><a title="preem.Game.__init__" href="#preem.Game.__init__">__init__</a></code></li>
+<li><code><a title="preem.Game.agents_and_states" href="#preem.Game.agents_and_states">agents_and_states</a></code></li>
+<li><code><a title="preem.Game.play" href="#preem.Game.play">play</a></code></li>
+<li><code><a title="preem.Game.rand" href="#preem.Game.rand">rand</a></code></li>
+<li><code><a title="preem.Game.result" href="#preem.Game.result">result</a></code></li>
+<li><code><a title="preem.Game.start" href="#preem.Game.start">start</a></code></li>
+<li><code><a title="preem.Game.watch" href="#preem.Game.watch">watch</a></code></li>
+<li><code><a title="preem.Game.world" href="#preem.Game.world">world</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.GameResult" href="#preem.GameResult">GameResult</a></code></h4>
+<ul class="">
+<li><code><a title="preem.GameResult.eliminated" href="#preem.GameResult.eliminated">eliminated</a></code></li>
+<li><code><a title="preem.GameResult.outright_winner" href="#preem.GameResult.outright_winner">outright_winner</a></code></li>
+<li><code><a title="preem.GameResult.winners" href="#preem.GameResult.winners">winners</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.Map" href="#preem.Map">Map</a></code></h4>
+<ul class="two-column">
+<li><code><a title="preem.Map.__init__" href="#preem.Map.__init__">__init__</a></code></li>
+<li><code><a title="preem.Map.continent_names" href="#preem.Map.continent_names">continent_names</a></code></li>
+<li><code><a title="preem.Map.continent_values" href="#preem.Map.continent_values">continent_values</a></code></li>
+<li><code><a title="preem.Map.continents" href="#preem.Map.continents">continents</a></code></li>
+<li><code><a title="preem.Map.edges" href="#preem.Map.edges">edges</a></code></li>
+<li><code><a title="preem.Map.initial_armies" href="#preem.Map.initial_armies">initial_armies</a></code></li>
+<li><code><a title="preem.Map.layout" href="#preem.Map.layout">layout</a></code></li>
+<li><code><a title="preem.Map.load" href="#preem.Map.load">load</a></code></li>
+<li><code><a title="preem.Map.load_file" href="#preem.Map.load_file">load_file</a></code></li>
+<li><code><a title="preem.Map.max_players" href="#preem.Map.max_players">max_players</a></code></li>
+<li><code><a title="preem.Map.max_turns" href="#preem.Map.max_turns">max_turns</a></code></li>
+<li><code><a title="preem.Map.n_continents" href="#preem.Map.n_continents">n_continents</a></code></li>
+<li><code><a title="preem.Map.n_territories" href="#preem.Map.n_territories">n_territories</a></code></li>
+<li><code><a title="preem.Map.name" href="#preem.Map.name">name</a></code></li>
+<li><code><a title="preem.Map.territory_names" href="#preem.Map.territory_names">territory_names</a></code></li>
+<li><code><a title="preem.Map.to_graph" href="#preem.Map.to_graph">to_graph</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.Move" href="#preem.Move">Move</a></code></h4>
+<ul class="">
+<li><code><a title="preem.Move.count" href="#preem.Move.count">count</a></code></li>
+<li><code><a title="preem.Move.from_" href="#preem.Move.from_">from_</a></code></li>
+<li><code><a title="preem.Move.to" href="#preem.Move.to">to</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.PlayerState" href="#preem.PlayerState">PlayerState</a></code></h4>
+<ul class="two-column">
+<li><code><a title="preem.PlayerState.__init__" href="#preem.PlayerState.__init__">__init__</a></code></li>
+<li><code><a title="preem.PlayerState.cards" href="#preem.PlayerState.cards">cards</a></code></li>
+<li><code><a title="preem.PlayerState.map" href="#preem.PlayerState.map">map</a></code></li>
+<li><code><a title="preem.PlayerState.my_territories" href="#preem.PlayerState.my_territories">my_territories</a></code></li>
+<li><code><a title="preem.PlayerState.player_index" href="#preem.PlayerState.player_index">player_index</a></code></li>
+<li><code><a title="preem.PlayerState.world" href="#preem.PlayerState.world">world</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="preem.World" href="#preem.World">World</a></code></h4>
+<ul class="">
+<li><code><a title="preem.World.__init__" href="#preem.World.__init__">__init__</a></code></li>
+<li><code><a title="preem.World.armies" href="#preem.World.armies">armies</a></code></li>
+<li><code><a title="preem.World.count_territories" href="#preem.World.count_territories">count_territories</a></code></li>
+<li><code><a title="preem.World.eliminated_players" href="#preem.World.eliminated_players">eliminated_players</a></code></li>
+<li><code><a title="preem.World.event_log" href="#preem.World.event_log">event_log</a></code></li>
+<li><code><a title="preem.World.has_neutral" href="#preem.World.has_neutral">has_neutral</a></code></li>
+<li><code><a title="preem.World.map" href="#preem.World.map">map</a></code></li>
+<li><code><a title="preem.World.n_cards" href="#preem.World.n_cards">n_cards</a></code></li>
+<li><code><a title="preem.World.n_players" href="#preem.World.n_players">n_players</a></code></li>
+<li><code><a title="preem.World.owners" href="#preem.World.owners">owners</a></code></li>
+<li><code><a title="preem.World.player_names" href="#preem.World.player_names">player_names</a></code></li>
+<li><code><a title="preem.World.sets_redeemed" href="#preem.World.sets_redeemed">sets_redeemed</a></code></li>
+<li><code><a title="preem.World.territories_belonging_to" href="#preem.World.territories_belonging_to">territories_belonging_to</a></code></li>
+<li><code><a title="preem.World.turn" href="#preem.World.turn">turn</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.5.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
