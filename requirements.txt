@@ -1,7 +1,0 @@
-networkx
-numpy
-pdoc3
-pygraphviz
-pytest
-pytest-cov
-scipy
