@@ -613,7 +613,7 @@ class FallbackAgent(Agent):
 
     - When `Agent.act()` fails, does nothing (ending the current turn).
     """
-    def __init__(self, agent, rand):
+    def __init__(self, agent, rand=random):
         """Create a fallback agent, warns & then fixes erroneous `Agent` responses.
 
         `agent` -- `Agent` -- implementation to wrap
@@ -652,7 +652,7 @@ class FallbackAgent(Agent):
 
     def act(self, state, earned_card):
         try:
-            return self._validating_agent.attack(state, earned_card)
+            return self._validating_agent.act(state, earned_card)
         except ValueError as e:
             sys.stderr.write('FallbackAgent Warning: {}\n'.format(e))
             return None
@@ -706,15 +706,17 @@ class _Deck:
         # if the map has few territories, you might run out of cards, so we repeat the deck a few times
         repetitions = math.ceil(map_.max_players * 5 / map_.n_territories)
         self.deck = [Card(symbol, territory)
-                     for symbol, territory in zip(it.cycle([0, 1, 2]), range(map_.n_territories))
-                     for _ in range(repetitions)]
+                     for symbol, territory in zip(it.cycle([0, 1, 2]),
+                                                  (t for _ in range(repetitions)
+                                                   for t in range(map_.n_territories)))]
         self.redeemed = []
         self.rand = rand
         self.rand.shuffle(self.deck)
 
     def draw(self):
         if not self.deck:
-            assert self.redeemed, 'Not enough cards to go around!'
+            if not self.redeemed:
+                raise ValueError('Not enough cards to go around!')
             self.deck = self.redeemed
             self.redeemed = []
             self.rand.shuffle(self.deck)

@@ -41,6 +41,25 @@ def test_count_reinforcements():
     assert preem.count_reinforcements(32) == 10
 
 
+def test_deck():
+    random.seed(642)
+    map_ = preem.Map.load_file('maps/tiny4.json')
+    deck = preem._Deck(map_, random)
+    stash = [deck.draw() for _ in range(20)]
+    assert collections.Counter([c.symbol for c in stash]) == {0: 7, 1: 7, 2: 6}
+    assert collections.Counter([c.territory for c in stash]) == {n: 5 for n in range(4)}
+    with pytest.raises(ValueError):
+        deck.draw()
+
+    top6 = stash[:6].copy()
+    deck.redeem(stash[:3])
+    deck.redeem(stash[3:6])
+    for _ in range(6):
+        assert deck.draw() in top6
+    with pytest.raises(ValueError):
+        deck.draw()
+
+
 # Core data tests
 
 def test_map_world_state_game_repr():
@@ -331,6 +350,103 @@ def test_attack_and_move_error():
     assert len(states[1].cards) == 0, "didn't earn a card"
     assert world.armies == [5, 5, 5, 1]
     assert world.owners == [0, 0, 1, 1]
+
+
+class EverythingWrongAgent:
+    def __init__(self):
+        self._ticker = 0
+
+    def _enemy_territory(self, state):
+        another_player = (state.player_index + 1) % state.world.n_players
+        return state.world.territories_belonging_to(another_player)[0]
+
+    def _friendly_territory(self, state):
+        return state.my_erritories[0]
+
+    def place(self, state):
+        self._ticker += 1
+        if self._ticker % 2 == 0:
+            return self._enemy_territory(state)
+        return state.map.n_territories
+
+    def redeem(self, state):
+        self._ticker += 1
+        if self._ticker % 2 == 0:
+            return None
+        return [preem.Card(0, 'not'), preem.Card(0, 'my'), preem.Card(0, 'cards')]
+
+    def reinforce(self, state, count):
+        self._ticker += 1
+        if self._ticker % 4 == 0:
+            return {}
+        if self._ticker % 4 == 1:
+            return {self._enemy_territory(state): count}
+        if self._ticker % 4 == 2:
+            return {state.my_territories[0]: count-1}
+        return {state.my_territories[0]: count+1}
+
+    def act(self, state, earned_card):
+        self._ticker += 1
+        try:
+            if self._ticker % 4 == 0:
+                # attack to friendly
+                from_, to = next((from_, to)
+                                 for from_ in state.my_territories
+                                 for to in state.map.edges[from_]
+                                 if state.world.owners[to] == state.player_index
+                                 and 1 < state.world.armies[from_])
+                return preem.Attack(from_, to, 1)
+            if self._ticker % 4 == 1:
+                # too many units attack
+                from_, to = next((from_, to)
+                                 for from_ in state.my_territories
+                                 for to in state.map.edges[from_]
+                                 if state.world.owners[to] != state.player_index
+                                 and 1 < state.world.armies[from_])
+                return preem.Attack(from_, to, state.world.armies[from_])
+            if self._ticker % 4 == 2:
+                # disconnected attack
+                from_, to = next((from_, to)
+                                 for from_ in state.my_territories
+                                 for to in range(state.map.n_territories)
+                                 if to not in state.map.edges[from_]
+                                 and state.world.owners[to] != state.player_index
+                                 and 1 < state.world.armies[from_])
+                return preem.Attack(from_, to, 1)
+            # move to enemy
+            from_, to = next((from_, to)
+                             for from_ in state.my_territories
+                             for to in state.map.edges[from_]
+                             if state.world.owners[to] != state.player_index
+                             and 1 < state.world.armies[from_])
+            return preem.Attack(from_, to, 1)
+        except StopIteration:
+            return None
+
+
+def test_play_game_fallback_agent():
+    random.seed(250)
+    map_ = preem.Map.load_file('maps/tiny4.json')
+    with pytest.raises(ValueError):
+        preem.Game.play(map_, [EverythingWrongAgent(), random_agent.Agent()])
+    preem.Game.play(map_, [preem.FallbackAgent(EverythingWrongAgent()), random_agent.Agent()])
+
+
+class RedeemWrongAgent(random_agent.Agent):
+    def __init__(self):
+        super().__init__()
+        self._bad_agent = EverythingWrongAgent()
+
+    def redeem(self, state):
+        return self._bad_agent.redeem(state)
+
+
+def test_play_game_fallback_agent_redeem_only():
+    random.seed(250)
+    map_ = preem.Map.load_file('maps/quad.json')
+    with pytest.raises(ValueError):
+        preem.Game.play(map_, [RedeemWrongAgent(), random_agent.Agent()])
+    preem.Game.play(map_, [preem.FallbackAgent(RedeemWrongAgent()), random_agent.Agent()])
 
 
 # Functional tests
