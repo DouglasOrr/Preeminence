@@ -115,8 +115,10 @@ class _View:
         return g
 
     @staticmethod
-    def simple_frame_time(event, place_time=0.25, reinforce_time=1, act_time=1):
-        """Return the frame time for an `Event`."""
+    def simple_frame_time(event, place_time=0.25, reinforce_time=1, act_time=1, end_time=1):
+        """Return the frame time for an `Event` (or `World` for the last frame)."""
+        if isinstance(event, World):
+            return end_time
         if event.method == 'place':
             return place_time
         elif event.method == 'reinforce':
@@ -125,6 +127,26 @@ class _View:
             return act_time
         # skips redeem, act(None), as these aren't visible on the map
 
+    class _Renderer:
+        def __init__(self, max_processes, poll_interval):
+            self.max_processes = max_processes
+            self.poll_interval = poll_interval
+            self.processes = []
+
+        def __call__(self, command):
+            while len(self.processes) >= self.max_processes:
+                time.sleep(self.poll_interval)
+                self.processes = [p for p in self.processes if p.poll() is None]
+            self.processes.append(subprocess.Popen(command, shell=True))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_tb):
+            for p in self.processes:
+                p.wait()
+            self.processes = []
+
     @classmethod
     def game_to_video(cls, game, out_path,
                       frame_time=None,
@@ -132,28 +154,31 @@ class _View:
                       poll_interval=0.01, dpi=72, fps=4):
         if frame_time is None:
             frame_time = cls.simple_frame_time
+        dot_path = '{dir}/{n:03d}.dot'
+        render_command = 'dot -Kneato -Tpng -Gdpi={dpi} -o{dir}/{n:03d}.png {dir}/{n:03d}.dot'
         with tempfile.TemporaryDirectory() as dir:
-            with open(os.path.join(dir, 'playlist.txt'), 'w') as playlist:
-                processes = []
-                for n, event in enumerate(game):
+            with open(os.path.join(dir, 'playlist.txt'), 'w') as playlist, \
+                 cls._Renderer(max_processes, poll_interval) as render:
+                frame_count = 0
+                for event in game:
                     ftime = frame_time(event)
                     if ftime:
-                        g = nx.nx_agraph.to_agraph(cls.event_to_graph(event))
-                        playlist.write('file {:03d}.png\nduration {}\n'.format(n, ftime))
-                        while len(processes) >= max_processes:
-                            time.sleep(poll_interval)
-                            processes = [p for p in processes if p.poll() is None]
                         # write to dot, then kick off conversion in a nonblocking subprocess
-                        g.write(path=os.path.join(dir, '{:03d}.dot'.format(n)))
-                        processes.append(subprocess.Popen(
-                            'dot -Kneato -Tpng -Gdpi={dpi} -o{dir}/{n:03d}.png {dir}/{n:03d}.dot'.format(
-                                dpi=dpi, dir=dir, n=n),
-                            shell=True))
-                playlist.write('file {:03d}.png\n'.format(n))
-                for p in processes:
-                    p.wait()
+                        g = nx.nx_agraph.to_agraph(cls.event_to_graph(event))
+                        g.write(path=dot_path.format(dir=dir, n=frame_count))
+                        render(render_command.format(dpi=dpi, dir=dir, n=frame_count))
+                        playlist.write('file {n:03d}.png\nduration {time}\n'.format(n=frame_count, time=ftime))
+                        frame_count += 1
+                # final "game over" frame
+                g = nx.nx_agraph.to_agraph(cls.world_to_graph(
+                    game.world, player_index=game.result.outright_winner()))
+                g.write(path=dot_path.format(dir=dir, n=frame_count))
+                render(render_command.format(dpi=dpi, dir=dir, n=frame_count))
+                playlist.write('file {n:03d}.png\nduration {time}\nfile {n:03d}.png\n'.format(
+                    n=frame_count, time=frame_time(game.world)))
             subprocess.check_call('ffmpeg -y -f concat -i {playlist} -r {fps} {out}'.format(
                 playlist=playlist.name, out=out_path, fps=fps), shell=True)
+
         import IPython.display
         return IPython.display.Video(out_path)
 
