@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.5.2" />
 <title>preem API documentation</title>
-<meta name="description" content="Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy." />
+<meta name="description" content="Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy …" />
 <link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
 <link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
@@ -21,9 +21,24 @@
 </header>
 <section id="section-intro">
 <p>Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy.</p>
+<p><strong>Get started now with our friendly <a href="tutorial.html">tutorial</a>.</strong></p>
+<p>Keep reading for tips on how to do useful things when developing your agent, or see the class reference
+below for details (we'd suggest starting with <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a>, <a title="preem.World" href="#preem.World"><code>World</code></a>, <a title="preem.Map" href="#preem.Map"><code>Map</code></a> and <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a>).`</p>
+<h2 id="howto-guide">Howto guide</h2>
+<p>TODO&hellip;</p>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">&#34;&#34;&#34;Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy.&#34;&#34;&#34;
+<pre><code class="python">&#34;&#34;&#34;Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy.
+
+**Get started now with our friendly [tutorial](tutorial.html).**
+
+Keep reading for tips on how to do useful things when developing your agent, or see the class reference
+below for details (we&#39;d suggest starting with `Agent`, `World`, `Map` and `PlayerState`).`
+
+## Howto guide
+
+TODO...
+&#34;&#34;&#34;
 
 
 import collections
@@ -55,7 +70,9 @@ class _View:
         tip = &#39;#{}: {}&#39;.format(index, map_.territory_names[index])
         if world is not None:
             owner = world.owners[index]
-            tip += &#39;\n#{}: {}&#39;.format(owner, cls._clip_string(world.player_names[owner], 32))
+            tip += &#39;\n#{}: {}&#39;.format(owner,
+                                      cls._clip_string(world.player_names[owner], 32)
+                                      if owner is not None else None)
             tip += &#39;\n{} armies&#39;.format(world.armies[index])
         if reinforcements is not None:
             tip += &#39;\n+{} reinforcements&#39;.format(reinforcements)
@@ -88,8 +105,9 @@ class _View:
         if world.has_neutral:
             colors = colors[:2] + (neutral_color,)
         for idx in range(world.map.n_territories):
+            owner = world.owners[idx]
             g.nodes[idx].update(
-                fillcolor=colors[world.owners[idx]],
+                fillcolor=colors[owner] if owner is not None else &#39;black&#39;,
                 width=min(.5, .1 * ((world.armies[idx] + 1) ** .5)),
                 tooltip=cls._tooltip(idx, world.map, world),
             )
@@ -896,6 +914,11 @@ class Game:
                                           agents_and_states[:-1] if world.has_neutral else agents_and_states,
                                           rand=rand))
 
+    @property
+    def map(self):
+        &#34;&#34;&#34;`Map` -- shortcut to get to the map&#34;&#34;&#34;
+        return self.world.map
+
     def __iter__(self):
         return self
 
@@ -1526,6 +1549,11 @@ event = next(e for e in game if e.agent is agent_a)   # find the next matching a
                                           agents_and_states[:-1] if world.has_neutral else agents_and_states,
                                           rand=rand))
 
+    @property
+    def map(self):
+        &#34;&#34;&#34;`Map` -- shortcut to get to the map&#34;&#34;&#34;
+        return self.world.map
+
     def __iter__(self):
         return self
 
@@ -1712,6 +1740,17 @@ def watch(cls, map, agents, video_path, rand=random, **video_args):
 <dt id="preem.Game.agents_and_states"><code class="name">var <span class="ident">agents_and_states</span></code></dt>
 <dd>
 <section class="desc"><p>[(<a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a>, <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a>)] &ndash; paired agents and states (including neutral)</p></section>
+</dd>
+<dt id="preem.Game.map"><code class="name">var <span class="ident">map</span></code></dt>
+<dd>
+<section class="desc"><p><a title="preem.Map" href="#preem.Map"><code>Map</code></a> &ndash; shortcut to get to the map</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def map(self):
+    &#34;&#34;&#34;`Map` -- shortcut to get to the map&#34;&#34;&#34;
+    return self.world.map</code></pre>
+</details>
 </dd>
 <dt id="preem.Game.rand"><code class="name">var <span class="ident">rand</span></code></dt>
 <dd>
@@ -2369,7 +2408,9 @@ See help(type(self)) for accurate signature.</p></section>
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul></ul>
+<ul>
+<li><a href="#howto-guide">Howto guide</a></li>
+</ul>
 </div>
 <ul id="index">
 <li><h3><a href="#header-variables">Global variables</a></h3>
@@ -2433,6 +2474,7 @@ See help(type(self)) for accurate signature.</p></section>
 <ul class="two-column">
 <li><code><a title="preem.Game.__init__" href="#preem.Game.__init__">__init__</a></code></li>
 <li><code><a title="preem.Game.agents_and_states" href="#preem.Game.agents_and_states">agents_and_states</a></code></li>
+<li><code><a title="preem.Game.map" href="#preem.Game.map">map</a></code></li>
 <li><code><a title="preem.Game.play" href="#preem.Game.play">play</a></code></li>
 <li><code><a title="preem.Game.rand" href="#preem.Game.rand">rand</a></code></li>
 <li><code><a title="preem.Game.result" href="#preem.Game.result">result</a></code></li>
