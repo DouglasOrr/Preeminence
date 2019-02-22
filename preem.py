@@ -12,7 +12,6 @@ import os
 import time
 import subprocess
 import tempfile
-import IPython.display
 import itertools as it
 import networkx as nx
 
@@ -142,6 +141,7 @@ class _View:
                     p.wait()
             subprocess.check_call('ffmpeg -y -f concat -i {playlist} -r {fps} {out}'.format(
                 playlist=playlist.name, out=out_path, fps=fps), shell=True)
+        import IPython.display
         return IPython.display.Video(out_path)
 
     @staticmethod

@@ -1,0 +1,2 @@
+./scripts/run pdoc3 --html --overwrite --html-dir docs preem
+mv docs/preem.html docs/index.html
