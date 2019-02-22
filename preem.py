@@ -1,4 +1,14 @@
-"""Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy."""
+"""Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy.
+
+**Get started now with our friendly [tutorial](tutorial.html).**
+
+Keep reading for tips on how to do useful things when developing your agent, or see the class reference
+below for details (we'd suggest starting with `Agent`, `World`, `Map` and `PlayerState`).`
+
+## Howto guide
+
+TODO...
+"""
 
 
 import collections
@@ -30,7 +40,9 @@ class _View:
         tip = '#{}: {}'.format(index, map_.territory_names[index])
         if world is not None:
             owner = world.owners[index]
-            tip += '\n#{}: {}'.format(owner, cls._clip_string(world.player_names[owner], 32))
+            tip += '\n#{}: {}'.format(owner,
+                                      cls._clip_string(world.player_names[owner], 32)
+                                      if owner is not None else None)
             tip += '\n{} armies'.format(world.armies[index])
         if reinforcements is not None:
             tip += '\n+{} reinforcements'.format(reinforcements)
@@ -63,8 +75,9 @@ class _View:
         if world.has_neutral:
             colors = colors[:2] + (neutral_color,)
         for idx in range(world.map.n_territories):
+            owner = world.owners[idx]
             g.nodes[idx].update(
-                fillcolor=colors[world.owners[idx]],
+                fillcolor=colors[owner] if owner is not None else 'black',
                 width=min(.5, .1 * ((world.armies[idx] + 1) ** .5)),
                 tooltip=cls._tooltip(idx, world.map, world),
             )
@@ -870,6 +883,11 @@ class Game:
                               _main_phase(world,
                                           agents_and_states[:-1] if world.has_neutral else agents_and_states,
                                           rand=rand))
+
+    @property
+    def map(self):
+        """`Map` -- shortcut to get to the map"""
+        return self.world.map
 
     def __iter__(self):
         return self

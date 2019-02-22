@@ -65,7 +65,6 @@ def test_deck():
 def test_map_world_state_game_repr():
     map_ = preem.Map.load_file('maps/tiny3.json')
     game = preem.Game.start(map_, [random_agent.Agent()] * 2)
-    first_placement = next(game)
 
     assert 'territories=3' in str(game.world.map)
     assert 'continents=1' in str(game.world.map)
@@ -75,6 +74,7 @@ def test_map_world_state_game_repr():
     assert 'players=3' in str(game.world)
     assert game.world._repr_svg_() is not None
 
+    first_placement = next(game)
     state = game.agents_and_states[0][1]
     state._add_cards([1, 2, 3, 4])  # don't actually need real cards here
     assert 'territories=1/3' in str(state)
@@ -558,6 +558,7 @@ def test_play_game():
     agents = [ConsistencyCheckingAgent(random_agent.Agent()),
               ConsistencyCheckingAgent(random_agent.Agent())]
     game = preem.Game.start(map_, agents)
+    assert game.map is map_
     for n, event in enumerate(game):
         # log should already contain this latest event
         assert game.world.event_log[-1] == event._replace(agent=str(event.agent))

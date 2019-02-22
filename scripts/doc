@@ -1,2 +1,3 @@
 ./scripts/run pdoc3 --html --overwrite --html-dir docs preem
 mv docs/preem.html docs/index.html
+./scripts/run jupyter nbconvert --execute --to html Tutorial.ipynb --output-dir docs --output tutorial
