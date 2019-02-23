@@ -2,6 +2,7 @@ import pytest
 import random
 import collections
 import os
+import re
 import itertools as it
 import unittest.mock as um
 import numpy as np
@@ -505,6 +506,51 @@ def test_next_event():
 
     with pytest.raises(StopIteration):
         game.next_event(predicate=lambda e: False)
+
+
+def test_tournament():
+    map_ = um.sentinel
+    agents = [um.MagicMock(), um.MagicMock(), um.MagicMock()]
+    agents[0].__str__.return_value = 'ey'
+    agents[1].__str__.return_value = 'bee'
+    agents[2].__str__.return_value = 'sea'
+
+    # bee beats ey and sea
+    # sea beats ey
+    def _play(game_map, game_agents):
+        assert game_map is map_
+        assert len(game_agents) == 2
+
+        a0 = agents.index(game_agents[0])
+        a1 = agents.index(game_agents[1])
+        if (a0, a1) == (0, 1):
+            winners = {1}
+        elif (a0, a1) == (0, 2):
+            winners = {1}
+        elif (a0, a1) == (1, 2):
+            winners = {0}
+        else:
+            assert False, 'unexpected agent matchup'
+        return P.GameResult(
+            winners=winners,
+            eliminated=[i for i in [0, 1] if i not in winners],
+            player_names=[str(a) for a in game_agents],
+        )
+
+    with um.patch('preem.Game') as game_cls, \
+         um.patch('multiprocessing.Pool') as pool_cls:
+        pool_instance = pool_cls.return_value
+        pool_instance.__enter__.return_value = pool_instance
+        pool_instance.map.side_effect = map
+        game_cls.play.side_effect = _play
+
+        result = P.Tournament.run(map=map_, agents=agents, n_processes=7, rounds=20)
+        assert result.win_rate == [0, 1, 0.5]
+        assert re.search('bee.+sea.+ey', str(result))
+        assert re.search('bee.+sea.+ey', result._repr_html_().replace('\n', ' '))
+
+        pool_cls.assert_called_with(7)
+        assert len(game_cls.play.mock_calls) == 3 * 20
 
 
 # Functional tests

@@ -1173,7 +1173,7 @@ class TournamentResult:
 
     def __repr__(self):
         return 'TournamentResult({})'.format(
-            ', '.join('{} ({:.1%})'.format(GameResult._name(self.player_names, idx), win_rate)
+            ', '.join('{} ({:.1%})'.format(GameResult._name(self.player_names, idx), win_rate or 0)
                       for idx, _, win_rate in self.ranked_players))
 
     def _repr_html_(self):
@@ -1195,7 +1195,8 @@ class TournamentResult:
         """
         win_rate = self.win_rate
         return [(index, self.player_names[index], win_rate[index])
-                for index in sorted(range(self.n_players), key=lambda x: win_rate[x], reverse=True)]
+                for index in sorted(range(self.n_players), key=lambda x: win_rate[x] or 0,
+                                    reverse=True)]
 
     @property
     def win_rate(self):
@@ -1211,7 +1212,7 @@ class TournamentResult:
                 played[winner] += 1
             for eliminated in game.eliminated:
                 played[eliminated] += 1
-        return [nwin / nplayed for nwin, nplayed in zip(wins, played)]
+        return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]
 
 
 class Tournament:
