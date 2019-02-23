@@ -11775,10 +11775,67 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Pre-eminence-tutorial">Pre-eminence tutorial<a class="anchor-link" href="#Pre-eminence-tutorial">&#182;</a></h1><p>In this tutorial, you'll learn how to define an agent to play the game Pre-eminence, run games so you can track performance, and step through those games so you can debug &amp; understand what your agent is doing at each point.</p>
+<h1 id="Preeminence-tutorial">Preeminence tutorial<a class="anchor-link" href="#Preeminence-tutorial">&#182;</a></h1><p>In this tutorial, you'll learn how to <strong>create an agent</strong> to play the game Preeminence, run games so you can track your agent's performance and step through &amp; debug those games so you can understand what it is doing at each point.</p>
+<p>Preeminence is a world domination game where 2-6 automated agents compete for ownership of territory on a map. Owning territories is a certified <em>Good Thing</em> in Preeminence - it earns you extra armies, gives you access to enemy territories to expand your region of control and ultimately it can win you the game (when you own every territory on the map). Your agent plays Preeminence by <strong>placing</strong> armies on owned territories, then <strong>attacking</strong> adjacent enemy territories. Here is the <em>classic</em> map, with territories randomly divided between 3 players (this is how the game starts):</p>
+<p><img src="https://douglasorr.github.io/Preeminence/img/eg_classic.svg" alt="Example classic map"></p>
+<p>We'll get back to the details of the game soon, but first let's get you set up...</p>
 
 </div>
 </div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="0.-Setting-up-Preeminence">0. Setting up Preeminence<a class="anchor-link" href="#0.-Setting-up-Preeminence">&#182;</a></h2><p>We'll use Preeminence through a web server (called <em>JupyterLab Notebooks</em>) that will let you edit, run &amp; visualise all in one place. You can run this server in Docker to keep everything tidy &amp; predictable. To get started:</p>
+<ul>
+<li>Install <a href="https://docs.docker.com/install/">Docker CE</a></li>
+<li>Run: <code>$ git clone https://github.com/DouglasOrr/Preeminence.git</code><ul>
+<li><em>clones <a href="https://github.com/DouglasOrr/Preeminence">Preeminence</a></em></li>
+</ul>
+</li>
+<li>Run: <code>$ ./run_notebook.sh</code><ul>
+<li><em>starts a notebook server</em></li>
+<li>open the URL that is shown</li>
+</ul>
+</li>
+</ul>
+<p>In the file browser, find <code>Tutorial.ipynb</code> &amp; open it. Now you have your own live copy of this same document. It is made up of <em>cells</em> which can contain text or code. Start at the top &amp; as you progress, run each cell in turn using <code>Shift+Enter</code> (you can also use <code>Ctrl+Enter</code> to repeatedly run the same cell). The remainder of this tutorial will assume you are following this approach (try it on the cell below this)...</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hi! I&#39;m up-to-date as of:&quot;</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Hi! I&#39;m up-to-date as of: 2019-02-23 12:52:53.408839
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div>
@@ -11788,28 +11845,37 @@ div#notebook {
 </div>
 </div>
 </div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
 <div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">load_ext</span> autoreload
-<span class="o">%</span><span class="k">autoreload</span> 2
-<span class="kn">import</span> <span class="nn">preem</span>
-<span class="kn">import</span> <span class="nn">random</span>
-</pre></div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now to the heart of the matter - let's create an Agent capable of playing a game! Your agent must inherit from <code>preem.Agent</code> (from now on we'll use <code>import preem as P</code> to make this <code>P.Agent</code>), and override 4 required methods. These make decisions about <strong>army placement</strong> (<code>place</code>, <code>reinforce</code>), strategic use of <strong>bonus armies from redeeming cards</strong> (<code>redeem</code>) and <strong>army movement and attacking</strong> (<code>act</code>).</p>
+<p>Each method is called in a preditable order during a game:</p>
+<p><img src="https://douglasorr.github.io/Preeminence/img/agent_flow.svg" alt="Agent method flow"></p>
+<ul>
+<li>The game sets up the map, assigns starting territories randomly to each player.</li>
+<li>Game calls <code>place</code> repeatedly (for each player in turn) to place a single army on an owned territory, until enough initial armies have been placed.</li>
+<li>For each turn, game:<ul>
+<li>calls <code>redeem</code> to decide which, if any, cards should be declared for bonus armies,</li>
+<li>calls <code>reinforce</code> to place multiple armies on one or more owned territories,</li>
+<li>calls <code>act</code> repeatedly, until it returns a turn-ending action (such as a move).</li>
+</ul>
+</li>
+</ul>
+<p>So with that general picture in view, here is a our first agent, which implements all of these methods <em>correctly</em> (although, not very <em>intelligently</em>):</p>
 
 </div>
 </div>
-</div>
-
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">RandomAgent</span><span class="p">(</span><span class="n">preem</span><span class="o">.</span><span class="n">Agent</span><span class="p">):</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">preem</span> <span class="k">as</span> <span class="nn">P</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+<span class="k">class</span> <span class="nc">RandomAgent</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Agent</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">my_territories</span><span class="p">)</span>
 
@@ -11818,69 +11884,59 @@ div#notebook {
 
     <span class="k">def</span> <span class="nf">redeem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
         <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">cards</span><span class="p">):</span>
-            <span class="n">sets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">preem</span><span class="o">.</span><span class="n">get_matching_sets</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">cards</span><span class="p">))</span>
+            <span class="n">sets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">get_matching_sets</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">cards</span><span class="p">))</span>
             <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">sets</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">act</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">earned_card</span><span class="p">):</span>
-        <span class="n">territory</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">my_territories</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">armies</span><span class="p">[</span><span class="n">t</span><span class="p">])</span>
-        <span class="n">armies</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">armies</span><span class="p">[</span><span class="n">territory</span><span class="p">]</span>
-        <span class="k">if</span> <span class="mi">3</span> <span class="o">&lt;=</span> <span class="n">armies</span><span class="p">:</span>
-            <span class="n">enemy_neighbours</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">map</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">territory</span><span class="p">]</span>
-                                <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">owners</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">!=</span> <span class="n">state</span><span class="o">.</span><span class="n">player_index</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">enemy_neighbours</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">preem</span><span class="o">.</span><span class="n">Attack</span><span class="p">(</span><span class="n">from_</span><span class="o">=</span><span class="n">territory</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">enemy_neighbours</span><span class="p">),</span> <span class="n">count</span><span class="o">=</span><span class="n">armies</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">preem</span><span class="o">.</span><span class="n">Move</span><span class="p">(</span><span class="n">from_</span><span class="o">=</span><span class="n">territory</span><span class="p">,</span>
-                              <span class="n">to</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">map</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">territory</span><span class="p">])),</span>
-                              <span class="n">count</span><span class="o">=</span><span class="n">armies</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">possible_attacks</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">P</span><span class="o">.</span><span class="n">get_all_possible_attacks</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">possible_attacks</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">possible_attacks</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">possible_attacks</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">possible_moves</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">get_all_possible_moves</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">possible_moves</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">possible_moves</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">possible_moves</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span>
 </pre></div>
 
 </div>
 </div>
 </div>
 
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Phew! That's quite a mouthful, so let's break it down, bit by bit.</p>
+
+<pre><code>class RandomAgent(P.Agent):
+
+</code></pre>
+<p>Hopefully no surprises here! (See also <a href="index.html#preem.Agent">Agent docs</a>.) We'll proceed method-by-method...</p>
+<h3 id="place"><code>place</code><a class="anchor-link" href="#place">&#182;</a></h3>
+<pre><code>def place(self, state):
+    return random.choice(state.my_territories)
+
+</code></pre>
+<p><strong><code>place(state)</code></strong> is called repeatedly at the beginning of the game to choose which of a player's randomly assigned territories to reinforce with the initial allocation of armies. Like all <code>Agent</code> methods, it accepts a <code>state</code> object (see <a href="index.html#preem.PlayerState">PlayerState docs</a>), which is your agent's conduit to all info about the current state of the game. Since it's so important, let's have a look at <code>state</code>. The best way to do this is to play a game up to the point our agent has just returned from <code>place</code>:</p>
+
+</div>
+</div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<span class="n">preem</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">play</span><span class="p">(</span><span class="n">preem</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()])</span>
-</pre></div>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">game</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/quad.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">event</span> <span class="o">=</span> <span class="n">game</span><span class="o">.</span><span class="n">next_event</span><span class="p">(</span><span class="n">player_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;place&#39;</span><span class="p">)</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span>
 
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt output_prompt">Out[3]:</div>
-
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>GameResult(winners={1}, eliminated=[0])</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[4]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">preem</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">preem</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()]):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">agent</span><span class="p">),</span> <span class="n">event</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;There are </span><span class="si">{}</span><span class="s1"> territories, with IDs </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">map</span><span class="o">.</span><span class="n">n_territories</span><span class="p">,</span>
+    <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">map</span><span class="o">.</span><span class="n">n_territories</span><span class="p">))))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;My owned territories are&#39;</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">my_territories</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;RandomAgent placed an army on&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -11897,84 +11953,9 @@ div#notebook {
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>140198271126104 place {} -&gt; 4
-140198271126272 place {} -&gt; 5
-140198271126216 place {} -&gt; 0
-140198271126104 place {} -&gt; 3
-140198271126272 place {} -&gt; 5
-140198271126216 place {} -&gt; 2
-140198271126104 place {} -&gt; 3
-140198271126272 place {} -&gt; 1
-140198271126216 place {} -&gt; 2
-140198271126104 place {} -&gt; 3
-140198271126272 place {} -&gt; 5
-140198271126216 place {} -&gt; 0
-140198271126272 reinforce {&#39;count&#39;: 3} -&gt; {1: 3}
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=1, to=0, count=4)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=1, to=2, count=4)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=1, to=0, count=3)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=5, to=4, count=3)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=0, to=2, count=2)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=5, to=4, count=2)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; None
-140198271126104 reinforce {&#39;count&#39;: 3} -&gt; {3: 3}
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=3, to=2, count=6)
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=3, to=2, count=4)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=2, to=1, count=3)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=1, to=0, count=2)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; None
-140198271126272 reinforce {&#39;count&#39;: 3} -&gt; {5: 3}
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=3, count=4)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=3)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=2, count=2)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; None
-140198271126104 reinforce {&#39;count&#39;: 3} -&gt; {0: 3}
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=2, count=4)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=2, to=3, count=3)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=2, to=3, count=2)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; None
-140198271126272 reinforce {&#39;count&#39;: 3} -&gt; {5: 3}
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=4, count=3)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=4, count=2)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; None
-140198271126104 reinforce {&#39;count&#39;: 5} -&gt; {1: 5}
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Move(from_=1, to=0, count=5)
-140198271126272 reinforce {&#39;count&#39;: 3} -&gt; {5: 3}
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=4, count=4)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; Move(from_=4, to=3, count=3)
-140198271126104 reinforce {&#39;count&#39;: 5} -&gt; {0: 5}
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Move(from_=0, to=2, count=10)
-140198271126272 redeem {} -&gt; None
-140198271126272 reinforce {&#39;count&#39;: 5} -&gt; {4: 5}
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Move(from_=4, to=5, count=5)
-140198271126104 reinforce {&#39;count&#39;: 5} -&gt; {1: 5}
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=11)
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=11)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=10)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=10)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=9)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=8)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=7)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Move(from_=1, to=2, count=5)
-140198271126272 redeem {} -&gt; None
-140198271126272 reinforce {&#39;count&#39;: 3} -&gt; {5: 3}
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=4, count=4)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=4, count=4)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=4, count=3)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=4, count=3)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=3, count=2)
-140198271126272 act {&#39;earned_card&#39;: True} -&gt; None
-140198271126104 redeem {} -&gt; None
-140198271126104 reinforce {&#39;count&#39;: 5} -&gt; {3: 5}
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Move(from_=2, to=0, count=5)
-140198271126272 redeem {} -&gt; None
-140198271126272 reinforce {&#39;count&#39;: 3} -&gt; {5: 3}
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=3, count=3)
-140198271126272 act {&#39;earned_card&#39;: False} -&gt; None
-140198271126104 redeem {} -&gt; None
-140198271126104 reinforce {&#39;count&#39;: 5} -&gt; {3: 5}
-140198271126104 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=3, to=4, count=10)
-140198271126104 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=9)
+<pre>There are 20 territories, with IDs [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+My owned territories are [3, 4, 8, 12, 14, 15, 19]
+RandomAgent placed an army on 3
 </pre>
 </div>
 </div>
@@ -11987,7 +11968,76 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="2.-Looking-at-the-world">2. Looking at the world<a class="anchor-link" href="#2.-Looking-at-the-world">&#182;</a></h2>
+<p>Now we can see what's going on here - territories are referred to by integer ID, and the job of <code>place</code> is to choose one of the territories owned by the current player to reinforce (with a single army). It is an error to return anything except the ID of an owned territory.</p>
+<blockquote><p><strong>Strategy point:</strong> consider the pros &amp; cons of distributing your armies - do you want to concentrate your armies on one area of the map (aggressive), or spread them out to defend all of your territories (defensive), or maybe something in between (balanced)?</p>
+</blockquote>
+<h3 id="reinforce"><code>reinforce</code><a class="anchor-link" href="#reinforce">&#182;</a></h3>
+<pre><code>def reinforce(self, state, count):
+    return {random.choice(state.my_territories): count}
+
+</code></pre>
+<p><strong><code>reinforce(state, count)</code></strong> is called each turn to place reinforcement armies on owned territories. It is very similar to <code>place</code>. The difference is that reinforce places multiple armies (at least 3) in one go (the number of armies depends on the territories you control and bonuses from cards), so returns a dictionary (of <code>{territory: count}</code>) rather than a single ID:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">event</span> <span class="o">=</span> <span class="n">game</span><span class="o">.</span><span class="n">next_event</span><span class="p">(</span><span class="n">player_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;reinforce&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;RandomAgent reinforced&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+
+<span class="nb">map</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">map</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;There are </span><span class="si">{}</span><span class="s1"> continents, with reinforcement values </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+    <span class="nb">map</span><span class="o">.</span><span class="n">n_continents</span><span class="p">,</span> <span class="nb">map</span><span class="o">.</span><span class="n">continent_values</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;territory-continent assignments&#39;</span><span class="p">,</span> <span class="nb">map</span><span class="o">.</span><span class="n">continents</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>RandomAgent reinforced {4: 3}
+There are 4 continents, with reinforcement values (2, 3, 2, 3)
+territory-continent assignments (0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3)
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Your agent may reinforce the same territory with <code>count</code> armies, or multiple territories (totalling <code>count</code> armies deployed). It is an error to reinforce with too many or too few armies, or to try to reinforce an enemy territory (obviously!)</p>
+<p><em>Note that the game is effectively paused at the moment, and if you re-run the above cell you might get a different result each time (until the game is over and you get an error). If this happens, you can go back and re-run the previous cell (that creates <code>game = P.Game.start(...)</code>) to start a new game.</em></p>
+<p><strong>How many armies?</strong> The number of armies you are given to allocate in <code>reinforce</code> each turn is calculated as <code>territory_armies + continent_armies + redeem_set_armies</code>. <code>territory_armies</code> is based on the number of territories you control (see <a href="index.html#preem.count_reinforcements"><code>count_reinforcements</code></a>), and is always at least <code>3</code>. <code>continent_armies</code> are awarded when you own every territory in a group (see the groups of territories indicated by <code>map.continents</code> above) - in the above example, owning territories <code>[0, 1, 2, 3]</code> would mean you control continent <code>0</code>, therefore receive a bonus <code>2</code> armies. Finally, <code>redeem_set_armies</code> are awarded when you redeem sets of cards (see <code>redeem</code>, below).</p>
+<blockquote><p><strong>Strategy point:</strong> the value of reinforcing a territory depends on what it is connected to - which areas of the map are strategically useful for you to attack or defend? Is there any point in reinforcing a territory that cannot attack or be directly attacked?</p>
+</blockquote>
+<h3 id="redeem"><code>redeem</code><a class="anchor-link" href="#redeem">&#182;</a></h3>
+<pre><code>def redeem(self, state):
+    if 5 &lt;= len(state.cards):
+        sets = list(P.get_matching_sets(state.cards))
+        return random.choice(sets)
+
+</code></pre>
+<p><strong><code>redeem(state)</code></strong> is called each turn to interact with the game's <em>cards</em> system. Cards are collected once a turn if your agent has conquered at least one territory, or claimed from another agent if you were the one to finish them off. They each contain one of three symbols, and can be matched into sets (but you can just use <a href="index.html#preem.get_matching_sets"><code>P.get_matching_sets</code></a> to do all of that work for you - see the docs if interested.) You don't have to do anything special to collect cards, however your agent implements <code>redeem</code> to decide when to trade them in for armies.</p>
+
 </div>
 </div>
 </div>
@@ -11996,10 +12046,10 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[5]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<span class="n">game</span> <span class="o">=</span> <span class="n">preem</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">preem</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load_file</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">game</span><span class="o">.</span><span class="n">world</span><span class="p">)</span>
-<span class="n">game</span><span class="o">.</span><span class="n">map</span>  <span class="c1"># same as game.world.map</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">event</span> <span class="o">=</span> <span class="n">game</span><span class="o">.</span><span class="n">next_event</span><span class="p">(</span><span class="n">player_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;redeem&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;RandomAgent redeemed&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;RandomAgent owns&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">cards</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;value of next set:&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">next_set_value</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -12016,133 +12066,53 @@ div#notebook {
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>World[map=Map[name=mini, territories=6, continents=2], players=3]
+<pre>RandomAgent redeemed None
+RandomAgent owns [Card(symbol=2, territory=8), Card(symbol=1, territory=7), Card(symbol=1, territory=19)]
+value of next set: 4
 </pre>
 </div>
 </div>
 
-<div class="output_area">
-
-<div class="prompt output_prompt">Out[5]:</div>
-
-
-
-<div class="output_svg output_subarea output_execute_result">
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
- "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Generated by graphviz version 2.40.1 (20161225.0304)
- -->
-<!-- Pages: 1 -->
-<svg width="428pt" height="206pt"
- viewBox="0.00 0.00 428.00 206.04" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<g id="graph0" class="graph" transform="scale(.8015 .8015) rotate(0) translate(36 221.0544)">
-<polygon fill="#f2f2f2" stroke="transparent" points="-36,36 -36,-221.0544 497.9702,-221.0544 497.9702,36 -36,36"/>
-<!-- 0 -->
-<g id="node1" class="node">
-<title>0</title>
-<g id="a_node1"><a xlink:title="#0: L1">
-<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="7" cy="-7" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 1 -->
-<g id="node2" class="node">
-<title>1</title>
-<g id="a_node2"><a xlink:title="#1: L2">
-<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="7" cy="-178.0544" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 0&#45;&#45;1 -->
-<g id="edge1" class="edge">
-<title>0&#45;&#45;1</title>
-<path fill="none" stroke="#000000" d="M7,-14.35C7,-42.4867 7,-143.1633 7,-170.9221"/>
-</g>
-<!-- 2 -->
-<g id="node3" class="node">
-<title>2</title>
-<g id="a_node3"><a xlink:title="#2: L3">
-<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="141.3911" cy="-92.5272" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 0&#45;&#45;2 -->
-<g id="edge2" class="edge">
-<title>0&#45;&#45;2</title>
-<path fill="none" stroke="#000000" d="M13.1237,-10.8972C35.512,-25.1452 112.7844,-74.3218 135.2314,-88.6071"/>
-</g>
-<!-- 1&#45;&#45;2 -->
-<g id="edge3" class="edge">
-<title>1&#45;&#45;2</title>
-<path fill="none" stroke="#000000" d="M13.1237,-174.1572C35.512,-159.9092 112.7844,-110.7326 135.2314,-96.4472"/>
-</g>
-<!-- 3 -->
-<g id="node4" class="node">
-<title>3</title>
-<g id="a_node4"><a xlink:title="#3: R1">
-<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="320.5791" cy="-92.5272" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 2&#45;&#45;3 -->
-<g id="edge4" class="edge">
-<title>2&#45;&#45;3</title>
-<path fill="none" stroke="#000000" d="M148.6374,-92.5272C177.5774,-92.5272 284.691,-92.5272 313.439,-92.5272"/>
-</g>
-<!-- 4 -->
-<g id="node5" class="node">
-<title>4</title>
-<g id="a_node5"><a xlink:title="#4: R2">
-<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="454.9702" cy="-178.0544" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 3&#45;&#45;4 -->
-<g id="edge5" class="edge">
-<title>3&#45;&#45;4</title>
-<path fill="none" stroke="#000000" d="M326.7029,-96.4244C349.0911,-110.6724 426.3636,-159.8489 448.8105,-174.1343"/>
-</g>
-<!-- 5 -->
-<g id="node6" class="node">
-<title>5</title>
-<g id="a_node6"><a xlink:title="#5: R3">
-<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="454.9702" cy="-7" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 3&#45;&#45;5 -->
-<g id="edge6" class="edge">
-<title>3&#45;&#45;5</title>
-<path fill="none" stroke="#000000" d="M326.7029,-88.63C349.0911,-74.382 426.3636,-25.2054 448.8105,-10.9201"/>
-</g>
-<!-- 4&#45;&#45;5 -->
-<g id="edge7" class="edge">
-<title>4&#45;&#45;5</title>
-<path fill="none" stroke="#000000" d="M454.9702,-170.7044C454.9702,-142.5677 454.9702,-41.8911 454.9702,-14.1322"/>
-</g>
-</g>
-</svg>
-
-</div>
-
-</div>
-
 </div>
 </div>
 
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Your agent may choose not to redeem any cards, unless it owns 5 or more cards (see <code>state.cards</code>), in which case there must be a set, and it is an error not to return a set from <code>redeem</code>.</p>
+<blockquote><p><strong>Strategy point:</strong> during the game, the value of each set redeemed increases rapidly. Do you want to wait until the last possible moment to declare a set, so that it might be worth more, or is it more useful to get the armies sooner? How aggressively should I try to knock out another player, so that I can claim their cards? Does redeeming my cards early make me less of a target?</p>
+</blockquote>
+<h3 id="act"><code>act</code><a class="anchor-link" href="#act">&#182;</a></h3>
+<pre><code>def act(self, state, earned_card):
+    possible_attacks = [a for a in P.get_all_possible_attacks(state) if a.count &gt;= 2]
+    if possible_attacks:
+        return random.choices(possible_attacks, weights=[a.count for a in possible_attacks])[0]
+    possible_moves = P.get_all_possible_moves(state)
+    if possible_moves:
+        return random.choices(possible_moves, weights=[a.count for a in possible_moves])[0]
+    return None
+
+</code></pre>
+<p><strong><code>act(state, earned_card)</code></strong> is probably the most important method for the agent. Here, your agent may attack adjacent enemy territories multiple times, then optionally make a end-of-turn move between two adjacent friendly territories. <code>act</code> can return an <code>Attack</code> (which will continue the turn after the attack has taken place), <code>Move</code> or <code>None</code> (both of which end the turn). Let's look at an attack:</p>
+
+</div>
+</div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">event</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">game</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">world</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;territory owners&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">owners</span><span class="p">)</span>
-<span class="n">event</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">event</span> <span class="o">=</span> <span class="n">game</span><span class="o">.</span><span class="n">next_event</span><span class="p">(</span><span class="n">player_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Attack</span><span class="p">))</span>
+<span class="n">action</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">result</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+<span class="n">world</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">world</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  owner of &quot;from_&quot;:&#39;</span><span class="p">,</span> <span class="n">world</span><span class="o">.</span><span class="n">owners</span><span class="p">[</span><span class="n">action</span><span class="o">.</span><span class="n">from_</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  owner of &quot;to&quot;:&#39;</span><span class="p">,</span> <span class="n">world</span><span class="o">.</span><span class="n">owners</span><span class="p">[</span><span class="n">action</span><span class="o">.</span><span class="n">to</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  connected?&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">.</span><span class="n">to</span> <span class="ow">in</span> <span class="n">world</span><span class="o">.</span><span class="n">map</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">action</span><span class="o">.</span><span class="n">from_</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  attacker </span><span class="si">{}</span><span class="s1"> vs defender </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">action</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">world</span><span class="o">.</span><span class="n">armies</span><span class="p">[</span><span class="n">action</span><span class="o">.</span><span class="n">to</span><span class="p">]))</span>
 </pre></div>
 
 </div>
@@ -12159,17 +12129,301 @@ div#notebook {
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Event(agent=&lt;__main__.RandomAgent object at 0x7f8274260a90&gt;, state=PlayerState[index=1, territories=2/6, armies=2/6, cards=0], method=&#39;place&#39;, args={}, result=4)
-PlayerState[index=1, territories=2/6, armies=2/6, cards=0]
-World[map=Map[name=mini, territories=6, continents=2], players=3]
-territory owners [2, 0, 2, 1, 1, 0]
+<pre>Attack(from_=13, to=10, count=5)
+  owner of &#34;from_&#34;: 0
+  owner of &#34;to&#34;: 2
+  connected? True
+  attacker 5 vs defender 1
 </pre>
 </div>
 </div>
 
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Note that our RandomAgent uses the helpers <a href="index.html#preem.get_all_possible_attacks"><code>get_all_possible_attacks</code></a> and <a href="index.html#preem.get_all_possible_moves"><code>get_all_possible_moves</code></a> to list all the possibilities. However, as you can see from the example above, all the information needed find allowed attacks is available through <code>state</code> (either in <code>state.world</code> or <code>state.world.map</code>).</p>
+<p>Attacks must be from a friendly to an adjacent enemy territory, and must have a maximum count less than the number of armies on that territory (as you are not allowed to leave a territory empty). When you attack, you roll <code>min(3, count)</code> dice, and the defender rolls <code>min(2, armies[to])</code> dice. The dice are paired from highest to lowest, and ties are broken in favour of the defender. Each winning dice conquers an army from the opponent. For example, when the attacker has 3 armies and the defender has 2, the possible outcomes are 1) defender loses two armies (if there are no defending armies left, the attacker moves in with <code>count</code> and now owns the territory); 2) each lose one army (attacker gets another chance to <code>act</code>, and is allowed to try again); 3) attacker loses two armies (likewise, they will get a chance to try again via <code>act</code> as long as they have enough armies remaining on <code>from_</code>).</p>
+<p>As long as at least one attack in a turn has succeeded in conquering a territory, <code>earned_card is True</code> and after the turn the player is awarded an extra card from the deck. If your agent conquers the last territory belonging to a player, all of that players cards will be automatically transferred to your <code>state.cards</code>, and may be redeemed on the next turn as usual.</p>
+<p>Moves are very similar, but only a single move is possible per turn (at the end), and the destination must be an adjacent friendly territory.</p>
+<blockquote><p><strong>Strategy point:</strong> Early on the game, how desparate are you for cards? Will you fight against the odds (e.g. 1v1 or even 1v2, which favour the defender)? Later, we need to take care to make sure our armies are usable for attacks. If surrounded by friendly territories, your armies are <em>landlocked</em>, and all they can do is slowly move towards the enemy at one <em>move</em> per turn. However, on the frontier, they can <em>attack</em> and conquer multiple territories in a single turn.</p>
+</blockquote>
+<h2 id="Playing-a-full-game">Playing a full game<a class="anchor-link" href="#Playing-a-full-game">&#182;</a></h2><p>Now that we've defined and understood our agent, let's play a full game:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">play</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
 <div class="output_area">
 
-<div class="prompt output_prompt">Out[6]:</div>
+<div class="prompt output_prompt">Out[7]:</div>
+
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>GameResult(winners={#2:RandomAgent@38c4a668}, eliminated=[#2:RandomAgent@38c4a668])</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Seems self-explanatory, and is useful if we're just interested in the final outcome, but maybe we still want some logging details without stepping through manually...</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[8]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">21</span><span class="p">)</span>
+<span class="n">game</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">RandomAgent</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">game</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;player_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">player_index</span><span class="p">),</span> <span class="n">event</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">game</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>player_2 place {} -&gt; 5
+player_1 place {} -&gt; 0
+player_0 place {} -&gt; 2
+player_2 place {} -&gt; 1
+player_1 place {} -&gt; 0
+player_0 place {} -&gt; 4
+player_2 place {} -&gt; 5
+player_1 place {} -&gt; 0
+player_0 place {} -&gt; 2
+player_2 place {} -&gt; 1
+player_1 place {} -&gt; 0
+player_0 place {} -&gt; 2
+player_0 reinforce {&#39;count&#39;: 3} -&gt; {4: 3}
+player_0 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=3)
+player_0 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=4)
+player_0 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
+player_0 act {&#39;earned_card&#39;: True} -&gt; Move(from_=3, to=2, count=2)
+player_1 reinforce {&#39;count&#39;: 3} -&gt; {0: 3}
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=1, count=7)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=2, count=6)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=2, count=6)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=1, count=5)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=1, to=2, count=4)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=2, to=3, count=3)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=2)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Move(from_=4, to=3, count=1)
+player_0 reinforce {&#39;count&#39;: 3} -&gt; {5: 3}
+player_0 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=3, count=5)
+player_0 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
+player_0 act {&#39;earned_card&#39;: True} -&gt; Move(from_=4, to=5, count=3)
+player_1 reinforce {&#39;count&#39;: 5} -&gt; {1: 5}
+player_1 act {&#39;earned_card&#39;: False} -&gt; Move(from_=1, to=2, count=5)
+player_0 reinforce {&#39;count&#39;: 5} -&gt; {5: 5}
+player_0 act {&#39;earned_card&#39;: False} -&gt; Move(from_=5, to=3, count=8)
+player_1 reinforce {&#39;count&#39;: 5} -&gt; {2: 5}
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=9)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=8)
+player_1 act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=7)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=6)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=5)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
+player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
+GameResult(winners={#1:RandomAgent@38c46438}, eliminated=[#1:RandomAgent@38c46438])
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Here we've used the fact that <code>Game</code> is iterable to view the sequence of events (i.e. using simple <code>next()</code> to go to the next event rather than <code>next_event()</code> which searches for the next matching event. Also note that <code>player_index</code> (also used to indicate the winner) is simply an index into the original <code>agents</code> array.</p>
+<p><em>Note that, as our first 1v1 game, an extra agent has appeared, called <code>Neutral</code>. The Neutral agent isn't too special - they just place their armies randomly at the beginning, then never reinforce, redeem or act - just sitting there waiting for you to attack!)</em></p>
+<blockquote><p><strong>Strategy point:</strong> is attacking <code>Neutral</code> any less valuable than attacking your opponent? You can still gain cards, territories and continents, but you're not making your enemy weaker at the same time.</p>
+</blockquote>
+<h2 id="Over-to-you...">Over to you...<a class="anchor-link" href="#Over-to-you...">&#182;</a></h2><p>Why not try overriding <code>act</code> or <code>reinforce</code> from <code>RandomAgent</code>? Can you make it better (or worse)? Adapt the subclass below &amp; re-evaluate.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[9]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">NewRandomAgent</span><span class="p">(</span><span class="n">RandomAgent</span><span class="p">):</span>
+    <span class="k">pass</span>  <span class="c1"># TODO</span>
+
+<span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">21</span><span class="p">)</span>
+<span class="n">game</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">NewRandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()])</span>
+<span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">game</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">agent</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;-&gt;&#39;</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">game</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>_NeutralAgent place {} -&gt; 5
+RandomAgent place {} -&gt; 0
+NewRandomAgent place {} -&gt; 2
+_NeutralAgent place {} -&gt; 1
+RandomAgent place {} -&gt; 0
+NewRandomAgent place {} -&gt; 4
+_NeutralAgent place {} -&gt; 5
+RandomAgent place {} -&gt; 0
+NewRandomAgent place {} -&gt; 2
+_NeutralAgent place {} -&gt; 1
+RandomAgent place {} -&gt; 0
+NewRandomAgent place {} -&gt; 2
+NewRandomAgent reinforce {&#39;count&#39;: 3} -&gt; {4: 3}
+NewRandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=3)
+NewRandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=4)
+NewRandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
+NewRandomAgent act {&#39;earned_card&#39;: True} -&gt; Move(from_=3, to=2, count=2)
+RandomAgent reinforce {&#39;count&#39;: 3} -&gt; {0: 3}
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=1, count=7)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=2, count=6)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=2, count=6)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=0, to=1, count=5)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=1, to=2, count=4)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=2, to=3, count=3)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=2)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Move(from_=4, to=3, count=1)
+NewRandomAgent reinforce {&#39;count&#39;: 3} -&gt; {5: 3}
+NewRandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=5, to=3, count=5)
+NewRandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
+NewRandomAgent act {&#39;earned_card&#39;: True} -&gt; Move(from_=4, to=5, count=3)
+RandomAgent reinforce {&#39;count&#39;: 5} -&gt; {1: 5}
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Move(from_=1, to=2, count=5)
+NewRandomAgent reinforce {&#39;count&#39;: 5} -&gt; {5: 5}
+NewRandomAgent act {&#39;earned_card&#39;: False} -&gt; Move(from_=5, to=3, count=8)
+RandomAgent reinforce {&#39;count&#39;: 5} -&gt; {2: 5}
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=10)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=9)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=8)
+RandomAgent act {&#39;earned_card&#39;: False} -&gt; Attack(from_=2, to=3, count=7)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=6)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=5)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
+RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
+GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c46080])
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="More-debugging-tools---looking-at-the-world">More debugging tools - looking at the world<a class="anchor-link" href="#More-debugging-tools---looking-at-the-world">&#182;</a></h2><p>Whether stepping through, or analysing complete games, these text logs can be a bit cumbersome, so let's look at them visually (you're going to hate me for not showing you this already, but I had my reasons...)</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">game</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[11]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">next</span><span class="p">(</span><span class="n">game</span><span class="p">)</span>  <span class="c1"># keep re-running this cell with Ctrl+Enter &amp; watch what happens</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt output_prompt">Out[11]:</div>
 
 
 
@@ -12195,7 +12449,7 @@ territory owners [2, 0, 2, 1, 1, 0]
 <!-- 1 -->
 <g id="node2" class="node">
 <title>1</title>
-<g id="a_node2"><a xlink:title="#1: L2&#10;#0: &lt;__main__.Rando..0x7f8274260b38&gt;&#10;1 armies">
+<g id="a_node2"><a xlink:title="#1: L2&#10;#0: RandomAgent@38c167b8&#10;1 armies">
 <ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="5" cy="-231.818" rx="5" ry="5"/>
 </a>
 </g>
@@ -12226,7 +12480,7 @@ territory owners [2, 0, 2, 1, 1, 0]
 <!-- 3 -->
 <g id="node4" class="node">
 <title>3</title>
-<g id="a_node4"><a xlink:title="#3: R1&#10;#1: &lt;__main__.Rando..0x7f8274260a90&gt;&#10;1 armies">
+<g id="a_node4"><a xlink:title="#3: R1&#10;#1: RandomAgent@38c167b8&#10;1 armies">
 <ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="409.9617" cy="-146.2908" rx="5" ry="5"/>
 </a>
 </g>
@@ -12239,7 +12493,7 @@ territory owners [2, 0, 2, 1, 1, 0]
 <!-- 4 -->
 <g id="node5" class="node">
 <title>4</title>
-<g id="a_node5"><a xlink:title="#4: R2&#10;#1: &lt;__main__.Rando..0x7f8274260a90&gt;&#10;1 armies">
+<g id="a_node5"><a xlink:title="#4: R2&#10;#1: RandomAgent@38c167b8&#10;1 armies">
 <ellipse fill="#698b22" stroke="#ee0000" stroke-width="4" cx="583.5166" cy="-231.818" rx="5" ry="5"/>
 </a>
 </g>
@@ -12252,7 +12506,7 @@ territory owners [2, 0, 2, 1, 1, 0]
 <!-- 5 -->
 <g id="node6" class="node">
 <title>5</title>
-<g id="a_node6"><a xlink:title="#5: R3&#10;#0: &lt;__main__.Rando..0x7f8274260b38&gt;&#10;1 armies">
+<g id="a_node6"><a xlink:title="#5: R3&#10;#0: RandomAgent@38c167b8&#10;1 armies">
 <ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="583.5166" cy="-60.7636" rx="5" ry="5"/>
 </a>
 </g>
@@ -12270,168 +12524,12 @@ territory owners [2, 0, 2, 1, 1, 0]
 <!-- legend -->
 <g id="node7" class="node">
 <title>legend</title>
-<text text-anchor="start" x="154.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
-<text text-anchor="start" x="203.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">&lt;__ma..0b38&gt;</text>
-<text text-anchor="start" x="290.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="298.2583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#698b22">&lt;__ma..0a90&gt;</text>
-<text text-anchor="start" x="383.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="391.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#666666">Neutral</text>
-</g>
-</g>
-</svg>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[7]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">while</span> <span class="n">event</span><span class="o">.</span><span class="n">method</span> <span class="o">!=</span> <span class="s1">&#39;act&#39;</span><span class="p">:</span>
-    <span class="n">event</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">game</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
-<span class="n">event</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Attack(from_=1, to=0, count=4)
-</pre>
-</div>
-</div>
-
-<div class="output_area">
-
-<div class="prompt output_prompt">Out[7]:</div>
-
-
-
-<div class="output_svg output_subarea output_execute_result">
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
- "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Generated by graphviz version 2.40.1 (20161225.0304)
- -->
-<!-- Pages: 1 -->
-<svg width="428pt" height="197pt"
- viewBox="0.00 0.00 428.00 197.17" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<g id="graph0" class="graph" transform="scale(.6303 .6303) rotate(0) translate(36 276.818)">
-<polygon fill="#f2f2f2" stroke="transparent" points="-36,36 -36,-276.818 643.0266,-276.818 643.0266,36 -36,36"/>
-<!-- 0 -->
-<g id="node1" class="node">
-<title>0</title>
-<g id="a_node1"><a xlink:title="#0: L1&#10;#2: Neutral&#10;3 armies">
-<ellipse fill="#666666" stroke="#000000" stroke-width="0" cx="20" cy="-60.7636" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 1 -->
-<g id="node2" class="node">
-<title>1</title>
-<g id="a_node2"><a xlink:title="#1: L2&#10;#0: &lt;__main__.Rando..0x7f8274260b38&gt;&#10;5 armies">
-<ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="20" cy="-231.818" rx="9" ry="9"/>
-</a>
-</g>
-</g>
-<!-- 0&#45;&#45;1 -->
-<g id="edge1" class="edge">
-<title>0&#45;&#45;1</title>
-<g id="a_edge1"><a xlink:title="Attack(4)">
-<path fill="none" stroke="#ff0000" stroke-width="4" d="M20,-78.4933C20,-114.5829 20,-195.4648 20,-222.6818"/>
-<polygon fill="#ff0000" stroke="#ff0000" stroke-width="4" points="23.5001,-78.1136 20,-68.1136 16.5001,-78.1136 23.5001,-78.1136"/>
-</a>
-</g>
-<text text-anchor="middle" x="10" y="-150.9213" font-family="bold" font-size="18.00" fill="#ee0000">4 </text>
-</g>
-<!-- 2 -->
-<g id="node3" class="node">
-<title>2</title>
-<g id="a_node3"><a xlink:title="#2: L3&#10;#2: Neutral&#10;3 armies">
-<ellipse fill="#666666" stroke="#000000" stroke-width="0" cx="193.708" cy="-146.2908" rx="7" ry="7"/>
-</a>
-</g>
-</g>
-<!-- 0&#45;&#45;2 -->
-<g id="edge2" class="edge">
-<title>0&#45;&#45;2</title>
-<path fill="none" stroke="#000000" d="M26.5974,-64.0119C54.1132,-77.5596 159.5758,-129.4854 187.104,-143.0392"/>
-</g>
-<!-- 1&#45;&#45;2 -->
-<g id="edge3" class="edge">
-<title>1&#45;&#45;2</title>
-<path fill="none" stroke="#000000" d="M28.3783,-227.6928C58.4687,-212.8774 160.7013,-162.542 187.3261,-149.433"/>
-</g>
-<!-- 3 -->
-<g id="node4" class="node">
-<title>3</title>
-<g id="a_node4"><a xlink:title="#3: R1&#10;#1: &lt;__main__.Rando..0x7f8274260a90&gt;&#10;4 armies">
-<ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="425.3186" cy="-146.2908" rx="8" ry="8"/>
-</a>
-</g>
-</g>
-<!-- 2&#45;&#45;3 -->
-<g id="edge4" class="edge">
-<title>2&#45;&#45;3</title>
-<path fill="none" stroke="#000000" d="M200.8936,-146.2908C235.1003,-146.2908 381.2707,-146.2908 417.2788,-146.2908"/>
-</g>
-<!-- 4 -->
-<g id="node5" class="node">
-<title>4</title>
-<g id="a_node5"><a xlink:title="#4: R2&#10;#1: &lt;__main__.Rando..0x7f8274260a90&gt;&#10;2 armies">
-<ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="599.0266" cy="-231.818" rx="6" ry="6"/>
-</a>
-</g>
-</g>
-<!-- 3&#45;&#45;4 -->
-<g id="edge5" class="edge">
-<title>3&#45;&#45;4</title>
-<path fill="none" stroke="#000000" d="M432.7826,-149.9658C462.0052,-164.3539 568.2795,-216.6793 593.5893,-229.1408"/>
-</g>
-<!-- 5 -->
-<g id="node6" class="node">
-<title>5</title>
-<g id="a_node6"><a xlink:title="#5: R3&#10;#0: &lt;__main__.Rando..0x7f8274260b38&gt;&#10;4 armies">
-<ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="599.0266" cy="-60.7636" rx="8" ry="8"/>
-</a>
-</g>
-</g>
-<!-- 3&#45;&#45;5 -->
-<g id="edge6" class="edge">
-<title>3&#45;&#45;5</title>
-<path fill="none" stroke="#000000" d="M432.7826,-142.6158C461.3558,-128.5474 563.5942,-78.2091 591.7837,-64.3297"/>
-</g>
-<!-- 4&#45;&#45;5 -->
-<g id="edge7" class="edge">
-<title>4&#45;&#45;5</title>
-<path fill="none" stroke="#000000" d="M599.0266,-225.73C599.0266,-199.7817 599.0266,-98.3998 599.0266,-68.8738"/>
-</g>
-<!-- legend -->
-<g id="node7" class="node">
-<title>legend</title>
-<text text-anchor="start" x="169.5133" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
-<text text-anchor="start" x="218.5133" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#cd5b45">&lt;__ma..0b38&gt;</text>
-<text text-anchor="start" x="305.5133" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="313.5133" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#698b22">&lt;__ma..0a90&gt;</text>
-<text text-anchor="start" x="398.5133" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="406.5133" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#666666">Neutral</text>
+<text text-anchor="start" x="156.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
+<text text-anchor="start" x="205.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">Rando..167b8</text>
+<text text-anchor="start" x="289.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
+<text text-anchor="start" x="297.2583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#698b22">Rando..167b8</text>
+<text text-anchor="start" x="381.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
+<text text-anchor="start" x="389.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#666666">Neutral</text>
 </g>
 </g>
 </svg>
@@ -12448,19 +12546,1001 @@ territory owners [2, 0, 2, 1, 1, 0]
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="3.-Running-a-mini-tournament">3. Running a mini-tournament<a class="anchor-link" href="#3.-Running-a-mini-tournament">&#182;</a></h2>
+<p>The same information as we saw before can be visualised in this way. On many browsers, you should be able to hover over the image to see a tooltip with more info. Note that <code>Event</code>, <code>PlayerState</code>, <code>World</code> and <code>Map</code> can all be visualised in this way (showing less information respectively).</p>
+<p><em>Hint: if you would like better agent names on the legend of your visualisations, override <code>__repr__(self)</code> in your agent class</em></p>
+<p>Additionally (although this is slow, so probably not part of your main developing loop), you can stitch together the images into a video:</p>
+
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
+<div class="prompt input_prompt">In&nbsp;[12]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># TODO</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;tutorial_mini.mp4&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">144</span><span class="p">)</span>
 </pre></div>
 
 </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt output_prompt">Out[12]:</div>
+
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<video src="tutorial_mini.mp4" controls  >
+      Your browser does not support the <code>video</code> element.
+    </video>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="The-&quot;real&quot;-map">The "real" map<a class="anchor-link" href="#The-&quot;real&quot;-map">&#182;</a></h3><p>Most of the maps we've seen so far are small, simplified versions that will serve you well for development. But the main tournament map is <code>"maps/classic.json"</code>, which looks like this:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[13]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">map_</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/classic.json&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">map_</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Continents:&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="n">continent_names</span><span class="p">,</span> <span class="n">map_</span><span class="o">.</span><span class="n">continent_values</span><span class="p">)))</span>
+<span class="n">map_</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Map[name=classic, territories=42, continents=6]
+Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;Europe&#39;, 6), (&#39;Africa&#39;, 3), (&#39;Asia&#39;, 7), (&#39;Australia&#39;, 2)]
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="prompt output_prompt">Out[13]:</div>
+
+
+
+<div class="output_svg output_subarea output_execute_result">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Pages: 1 -->
+<svg width="776pt" height="377pt"
+ viewBox="0.00 0.00 776.00 377.14" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(.8824 .8824) rotate(0) translate(36 391.4118)">
+<polygon fill="#f2f2f2" stroke="transparent" points="-36,36 -36,-391.4118 843.4384,-391.4118 843.4384,36 -36,36"/>
+<!-- 0 -->
+<g id="node1" class="node">
+<title>0</title>
+<g id="a_node1"><a xlink:title="#0: Alaska">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="7" cy="-348.4118" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 1 -->
+<g id="node2" class="node">
+<title>1</title>
+<g id="a_node2"><a xlink:title="#1: Northwest Territory">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="62.5407" cy="-348.4118" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 0&#45;&#45;1 -->
+<g id="edge1" class="edge">
+<title>0&#45;&#45;1</title>
+<path fill="none" stroke="#000000" d="M14.261,-348.4118C24.9641,-348.4118 44.8508,-348.4118 55.4535,-348.4118"/>
+</g>
+<!-- 3 -->
+<g id="node3" class="node">
+<title>3</title>
+<g id="a_node3"><a xlink:title="#3: Alberta">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="38.7375" cy="-317.3744" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 0&#45;&#45;3 -->
+<g id="edge2" class="edge">
+<title>0&#45;&#45;3</title>
+<path fill="none" stroke="#000000" d="M12.2408,-343.2866C18.1565,-337.5015 27.719,-328.1499 33.5942,-322.4042"/>
+</g>
+<!-- 29 -->
+<g id="node4" class="node">
+<title>29</title>
+<g id="a_node4"><a xlink:title="#29: Kamchatka">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="760.7665" cy="-332.8931" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 0&#45;&#45;29 -->
+<g id="edge3" class="edge">
+<title>0&#45;&#45;29</title>
+<path fill="none" stroke="#000000" d="M14.1537,-346.9444C24.6973,-344.8638 45.0561,-341.1596 62.5798,-339.8119 139.9362,-333.8626 159.5698,-338.6356 237.1457,-339.812 261.7795,-340.1855 267.9189,-341.1192 292.5526,-341.4927 468.8531,-344.1661 513.2693,-352.0403 689.2742,-341.4927 712.9842,-340.0718 740.8806,-336.0231 753.6888,-334.0298"/>
+</g>
+<!-- 1&#45;&#45;3 -->
+<g id="edge5" class="edge">
+<title>1&#45;&#45;3</title>
+<path fill="none" stroke="#000000" d="M58.1748,-342.7191C53.88,-337.1189 47.361,-328.6187 43.0757,-323.0311"/>
+</g>
+<!-- 2 -->
+<g id="node5" class="node">
+<title>2</title>
+<g id="a_node5"><a xlink:title="#2: Greenland">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="237.0971" cy="-348.4118" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 1&#45;&#45;2 -->
+<g id="edge4" class="edge">
+<title>1&#45;&#45;2</title>
+<path fill="none" stroke="#000000" d="M69.5997,-348.4118C97.6641,-348.4118 201.1939,-348.4118 229.7567,-348.4118"/>
+</g>
+<!-- 4 -->
+<g id="node6" class="node">
+<title>4</title>
+<g id="a_node6"><a xlink:title="#4: Ontario">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="86.3438" cy="-317.3744" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 1&#45;&#45;4 -->
+<g id="edge6" class="edge">
+<title>1&#45;&#45;4</title>
+<path fill="none" stroke="#000000" d="M66.9065,-342.7191C71.2014,-337.1189 77.7204,-328.6187 82.0056,-323.0311"/>
+</g>
+<!-- 3&#45;&#45;4 -->
+<g id="edge10" class="edge">
+<title>3&#45;&#45;4</title>
+<path fill="none" stroke="#000000" d="M45.762,-317.3744C54.7628,-317.3744 70.2759,-317.3744 79.2905,-317.3744"/>
+</g>
+<!-- 6 -->
+<g id="node9" class="node">
+<title>6</title>
+<g id="a_node9"><a xlink:title="#6: Western United States">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="38.7375" cy="-255.2995" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 3&#45;&#45;6 -->
+<g id="edge11" class="edge">
+<title>3&#45;&#45;6</title>
+<path fill="none" stroke="#000000" d="M38.7375,-310.2536C38.7375,-298.2796 38.7375,-274.2553 38.7375,-262.3373"/>
+</g>
+<!-- 30 -->
+<g id="node34" class="node">
+<title>30</title>
+<g id="a_node34"><a xlink:title="#30: Irkutsk">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="689.357" cy="-301.8557" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 29&#45;&#45;30 -->
+<g id="edge65" class="edge">
+<title>29&#45;&#45;30</title>
+<path fill="none" stroke="#000000" d="M754.1764,-330.0288C740.6417,-324.1461 709.836,-310.7567 696.1394,-304.8036"/>
+</g>
+<!-- 33 -->
+<g id="node35" class="node">
+<title>33</title>
+<g id="a_node35"><a xlink:title="#33: Mongolia">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="705.2258" cy="-263.0589" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 29&#45;&#45;33 -->
+<g id="edge66" class="edge">
+<title>29&#45;&#45;33</title>
+<path fill="none" stroke="#000000" d="M756.4083,-327.4133C746.0769,-314.4232 720.1825,-281.8648 709.718,-268.7072"/>
+</g>
+<!-- 34 -->
+<g id="node36" class="node">
+<title>34</title>
+<g id="a_node36"><a xlink:title="#34: Japan">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="768.7008" cy="-247.5402" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 29&#45;&#45;34 -->
+<g id="edge67" class="edge">
+<title>29&#45;&#45;34</title>
+<path fill="none" stroke="#000000" d="M761.4158,-325.9083C762.8962,-309.9827 766.5099,-271.1087 768.0201,-254.8634"/>
+</g>
+<!-- 2&#45;&#45;4 -->
+<g id="edge7" class="edge">
+<title>2&#45;&#45;4</title>
+<path fill="none" stroke="#000000" d="M230.2278,-346.9976C205.1138,-341.827 118.4334,-323.9811 93.2535,-318.797"/>
+</g>
+<!-- 5 -->
+<g id="node7" class="node">
+<title>5</title>
+<g id="a_node7"><a xlink:title="#5: Quebec">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="165.6877" cy="-317.3744" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 2&#45;&#45;5 -->
+<g id="edge8" class="edge">
+<title>2&#45;&#45;5</title>
+<path fill="none" stroke="#000000" d="M230.5071,-345.5475C216.9723,-339.6648 186.1667,-326.2754 172.4701,-320.3223"/>
+</g>
+<!-- 13 -->
+<g id="node8" class="node">
+<title>13</title>
+<g id="a_node8"><a xlink:title="#13: Iceland">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="292.6378" cy="-332.8931" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 2&#45;&#45;13 -->
+<g id="edge9" class="edge">
+<title>2&#45;&#45;13</title>
+<path fill="none" stroke="#000000" d="M243.9075,-346.5089C254.5672,-343.5305 275.0778,-337.7996 285.7717,-334.8116"/>
+</g>
+<!-- 4&#45;&#45;5 -->
+<g id="edge12" class="edge">
+<title>4&#45;&#45;5</title>
+<path fill="none" stroke="#000000" d="M93.3851,-317.3744C108.404,-317.3744 143.4423,-317.3744 158.5482,-317.3744"/>
+</g>
+<!-- 4&#45;&#45;6 -->
+<g id="edge13" class="edge">
+<title>4&#45;&#45;6</title>
+<path fill="none" stroke="#000000" d="M81.9505,-311.6458C72.9273,-299.8803 52.3902,-273.1016 43.2591,-261.1953"/>
+</g>
+<!-- 7 -->
+<g id="node10" class="node">
+<title>7</title>
+<g id="a_node10"><a xlink:title="#7: Eastern United States">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="102.2126" cy="-255.2995" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 4&#45;&#45;7 -->
+<g id="edge14" class="edge">
+<title>4&#45;&#45;7</title>
+<path fill="none" stroke="#000000" d="M88.1642,-310.2536C91.2252,-298.2796 97.3668,-274.2553 100.4135,-262.3373"/>
+</g>
+<!-- 5&#45;&#45;7 -->
+<g id="edge15" class="edge">
+<title>5&#45;&#45;7</title>
+<path fill="none" stroke="#000000" d="M160.2758,-312.0819C148.1637,-300.237 119.0147,-271.731 107.2564,-260.2321"/>
+</g>
+<!-- 14 -->
+<g id="node17" class="node">
+<title>14</title>
+<g id="a_node17"><a xlink:title="#14: Scandanavia">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="356.1129" cy="-325.1338" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 13&#45;&#45;14 -->
+<g id="edge26" class="edge">
+<title>13&#45;&#45;14</title>
+<path fill="none" stroke="#000000" d="M299.9192,-332.003C312.1633,-330.5063 336.7295,-327.5032 348.9164,-326.0135"/>
+</g>
+<!-- 15 -->
+<g id="node18" class="node">
+<title>15</title>
+<g id="a_node18"><a xlink:title="#15: Great Britain">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="308.5066" cy="-309.615" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 13&#45;&#45;15 -->
+<g id="edge27" class="edge">
+<title>13&#45;&#45;15</title>
+<path fill="none" stroke="#000000" d="M296.6422,-327.0191C299.0661,-323.4634 302.1447,-318.9473 304.5585,-315.4066"/>
+</g>
+<!-- 6&#45;&#45;7 -->
+<g id="edge16" class="edge">
+<title>6&#45;&#45;7</title>
+<path fill="none" stroke="#000000" d="M46.0189,-255.2995C58.2631,-255.2995 82.8292,-255.2995 95.0161,-255.2995"/>
+</g>
+<!-- 8 -->
+<g id="node11" class="node">
+<title>8</title>
+<g id="a_node11"><a xlink:title="#8: Central America">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="54.6063" cy="-193.2246" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 6&#45;&#45;8 -->
+<g id="edge17" class="edge">
+<title>6&#45;&#45;8</title>
+<path fill="none" stroke="#000000" d="M40.5579,-248.1787C43.6189,-236.2047 49.7605,-212.1804 52.8072,-200.2624"/>
+</g>
+<!-- 7&#45;&#45;8 -->
+<g id="edge18" class="edge">
+<title>7&#45;&#45;8</title>
+<path fill="none" stroke="#000000" d="M97.8192,-249.5709C88.7961,-237.8054 68.259,-211.0267 59.1279,-199.1205"/>
+</g>
+<!-- 9 -->
+<g id="node12" class="node">
+<title>9</title>
+<g id="a_node12"><a xlink:title="#9: Venezuela">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="102.2126" cy="-138.9091" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 8&#45;&#45;9 -->
+<g id="edge19" class="edge">
+<title>8&#45;&#45;9</title>
+<path fill="none" stroke="#000000" d="M59.345,-187.8181C68.4702,-177.4069 88.383,-154.6877 97.493,-144.2938"/>
+</g>
+<!-- 10 -->
+<g id="node13" class="node">
+<title>10</title>
+<g id="a_node13"><a xlink:title="#10: Peru">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="94.2782" cy="-84.5936" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 9&#45;&#45;10 -->
+<g id="edge20" class="edge">
+<title>9&#45;&#45;10</title>
+<path fill="none" stroke="#000000" d="M101.1753,-131.8083C99.6463,-121.3413 96.8053,-101.8932 95.2907,-91.5244"/>
+</g>
+<!-- 11 -->
+<g id="node14" class="node">
+<title>11</title>
+<g id="a_node14"><a xlink:title="#11: Brazil">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="165.6877" cy="-100.1123" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 9&#45;&#45;11 -->
+<g id="edge21" class="edge">
+<title>9&#45;&#45;11</title>
+<path fill="none" stroke="#000000" d="M108.5309,-135.0473C120.6978,-127.6107 147.2482,-111.3828 159.3949,-103.9585"/>
+</g>
+<!-- 10&#45;&#45;11 -->
+<g id="edge22" class="edge">
+<title>10&#45;&#45;11</title>
+<path fill="none" stroke="#000000" d="M101.1253,-86.0816C114.6698,-89.0251 144.7628,-95.5649 158.5446,-98.56"/>
+</g>
+<!-- 12 -->
+<g id="node15" class="node">
+<title>12</title>
+<g id="a_node15"><a xlink:title="#12: Argentina">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="118.0814" cy="-7" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 10&#45;&#45;12 -->
+<g id="edge23" class="edge">
+<title>10&#45;&#45;12</title>
+<path fill="none" stroke="#000000" d="M96.3906,-77.7077C100.8963,-63.0201 111.4078,-28.7546 115.9395,-13.982"/>
+</g>
+<!-- 11&#45;&#45;12 -->
+<g id="edge24" class="edge">
+<title>11&#45;&#45;12</title>
+<path fill="none" stroke="#000000" d="M162.4155,-93.7123C153.7186,-76.7022 130.0995,-30.506 121.3764,-13.4448"/>
+</g>
+<!-- 20 -->
+<g id="node16" class="node">
+<title>20</title>
+<g id="a_node16"><a xlink:title="#20: North Africa">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="276.769" cy="-193.2246" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 11&#45;&#45;20 -->
+<g id="edge25" class="edge">
+<title>11&#45;&#45;20</title>
+<path fill="none" stroke="#000000" d="M171.3489,-104.8578C190.4482,-120.8675 252.3675,-172.7704 271.251,-188.5992"/>
+</g>
+<!-- 21 -->
+<g id="node26" class="node">
+<title>21</title>
+<g id="a_node26"><a xlink:title="#21: Egypt">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="371.9816" cy="-193.2246" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 20&#45;&#45;21 -->
+<g id="edge45" class="edge">
+<title>20&#45;&#45;21</title>
+<path fill="none" stroke="#000000" d="M283.9255,-193.2246C301.5705,-193.2246 347.0103,-193.2246 364.7422,-193.2246"/>
+</g>
+<!-- 22 -->
+<g id="node27" class="node">
+<title>22</title>
+<g id="a_node27"><a xlink:title="#22: East Africa">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="387.8504" cy="-138.9091" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 20&#45;&#45;22 -->
+<g id="edge46" class="edge">
+<title>20&#45;&#45;22</title>
+<path fill="none" stroke="#000000" d="M283.0595,-190.1488C302.5193,-180.6335 361.6135,-151.7382 381.3522,-142.0865"/>
+</g>
+<!-- 23 -->
+<g id="node28" class="node">
+<title>23</title>
+<g id="a_node28"><a xlink:title="#23: Congo">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="324.3753" cy="-115.631" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 20&#45;&#45;23 -->
+<g id="edge47" class="edge">
+<title>20&#45;&#45;23</title>
+<path fill="none" stroke="#000000" d="M280.5046,-187.136C289.3601,-172.7025 311.5553,-136.5265 320.5249,-121.9069"/>
+</g>
+<!-- 14&#45;&#45;15 -->
+<g id="edge28" class="edge">
+<title>14&#45;&#45;15</title>
+<path fill="none" stroke="#000000" d="M349.0884,-322.8439C339.9842,-319.8761 324.217,-314.7363 315.2516,-311.8138"/>
+</g>
+<!-- 16 -->
+<g id="node19" class="node">
+<title>16</title>
+<g id="a_node19"><a xlink:title="#16: Northern Europe">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="371.9816" cy="-294.0963" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 14&#45;&#45;16 -->
+<g id="edge29" class="edge">
+<title>14&#45;&#45;16</title>
+<path fill="none" stroke="#000000" d="M359.3242,-318.8529C362.0773,-313.468 366.0234,-305.75 368.7751,-300.3679"/>
+</g>
+<!-- 17 -->
+<g id="node20" class="node">
+<title>17</title>
+<g id="a_node20"><a xlink:title="#17: Ukraine">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="451.3255" cy="-301.8557" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 14&#45;&#45;17 -->
+<g id="edge30" class="edge">
+<title>14&#45;&#45;17</title>
+<path fill="none" stroke="#000000" d="M362.9603,-323.4597C380.4425,-319.1855 426.5901,-307.9031 444.2832,-303.5774"/>
+</g>
+<!-- 15&#45;&#45;16 -->
+<g id="edge31" class="edge">
+<title>15&#45;&#45;16</title>
+<path fill="none" stroke="#000000" d="M315.788,-307.8348C328.1623,-304.8095 353.1224,-298.7071 365.1699,-295.7617"/>
+</g>
+<!-- 18 -->
+<g id="node21" class="node">
+<title>18</title>
+<g id="a_node21"><a xlink:title="#18: Western Europe">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="316.441" cy="-270.8182" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 15&#45;&#45;18 -->
+<g id="edge32" class="edge">
+<title>15&#45;&#45;18</title>
+<path fill="none" stroke="#000000" d="M309.9619,-302.4991C311.3935,-295.4989 313.5665,-284.8736 314.9949,-277.8891"/>
+</g>
+<!-- 16&#45;&#45;17 -->
+<g id="edge33" class="edge">
+<title>16&#45;&#45;17</title>
+<path fill="none" stroke="#000000" d="M379.0229,-294.7849C394.0418,-296.2537 429.0801,-299.6802 444.186,-301.1575"/>
+</g>
+<!-- 16&#45;&#45;18 -->
+<g id="edge34" class="edge">
+<title>16&#45;&#45;18</title>
+<path fill="none" stroke="#000000" d="M365.1713,-291.242C354.3956,-286.7257 333.554,-277.9906 322.9618,-273.5513"/>
+</g>
+<!-- 19 -->
+<g id="node22" class="node">
+<title>19</title>
+<g id="a_node22"><a xlink:title="#19: Southern Europe">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="379.916" cy="-255.2995" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 16&#45;&#45;19 -->
+<g id="edge35" class="edge">
+<title>16&#45;&#45;19</title>
+<path fill="none" stroke="#000000" d="M373.4369,-286.9804C374.8685,-279.9802 377.0415,-269.3549 378.47,-262.3703"/>
+</g>
+<!-- 17&#45;&#45;19 -->
+<g id="edge36" class="edge">
+<title>17&#45;&#45;19</title>
+<path fill="none" stroke="#000000" d="M445.2371,-297.8863C431.7459,-289.0906 399.4659,-268.0453 385.9889,-259.2588"/>
+</g>
+<!-- 26 -->
+<g id="node23" class="node">
+<title>26</title>
+<g id="a_node23"><a xlink:title="#26: Ural">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="530.6693" cy="-325.1338" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 17&#45;&#45;26 -->
+<g id="edge37" class="edge">
+<title>17&#45;&#45;26</title>
+<path fill="none" stroke="#000000" d="M458.0903,-303.8404C473.0806,-308.2382 508.9473,-318.7609 523.9216,-323.1541"/>
+</g>
+<!-- 31 -->
+<g id="node24" class="node">
+<title>31</title>
+<g id="a_node24"><a xlink:title="#31: Kazakhstan">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="530.6693" cy="-255.2995" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 17&#45;&#45;31 -->
+<g id="edge38" class="edge">
+<title>17&#45;&#45;31</title>
+<path fill="none" stroke="#000000" d="M457.5515,-298.2025C472.3105,-289.5424 509.3026,-267.8368 524.2519,-259.0651"/>
+</g>
+<!-- 35 -->
+<g id="node25" class="node">
+<title>35</title>
+<g id="a_node25"><a xlink:title="#35: Middle East">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="475.1286" cy="-208.7434" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 17&#45;&#45;35 -->
+<g id="edge39" class="edge">
+<title>17&#45;&#45;35</title>
+<path fill="none" stroke="#000000" d="M453.1146,-294.8571C457.5475,-277.5167 468.9973,-232.7276 473.3835,-215.5701"/>
+</g>
+<!-- 18&#45;&#45;20 -->
+<g id="edge41" class="edge">
+<title>18&#45;&#45;20</title>
+<path fill="none" stroke="#000000" d="M313.1944,-264.4684C305.7922,-249.9906 287.7237,-214.6506 280.1729,-199.8822"/>
+</g>
+<!-- 18&#45;&#45;19 -->
+<g id="edge40" class="edge">
+<title>18&#45;&#45;19</title>
+<path fill="none" stroke="#000000" d="M323.7224,-269.038C336.0967,-266.0127 361.0567,-259.9103 373.1043,-256.9649"/>
+</g>
+<!-- 19&#45;&#45;20 -->
+<g id="edge42" class="edge">
+<title>19&#45;&#45;20</title>
+<path fill="none" stroke="#000000" d="M373.7726,-251.6024C355.4703,-240.5878 301.4401,-208.072 283.0107,-196.9809"/>
+</g>
+<!-- 19&#45;&#45;35 -->
+<g id="edge44" class="edge">
+<title>19&#45;&#45;35</title>
+<path fill="none" stroke="#000000" d="M386.4604,-252.0995C403.9383,-243.5534 451.5495,-220.2729 468.7892,-211.8431"/>
+</g>
+<!-- 19&#45;&#45;21 -->
+<g id="edge43" class="edge">
+<title>19&#45;&#45;21</title>
+<path fill="none" stroke="#000000" d="M379.0059,-248.1787C377.4753,-236.2047 374.4046,-212.1804 372.8812,-200.2624"/>
+</g>
+<!-- 26&#45;&#45;31 -->
+<g id="edge57" class="edge">
+<title>26&#45;&#45;31</title>
+<path fill="none" stroke="#000000" d="M530.6693,-317.9233C530.6693,-304.5414 530.6693,-276.0065 530.6693,-262.5754"/>
+</g>
+<!-- 27 -->
+<g id="node31" class="node">
+<title>27</title>
+<g id="a_node31"><a xlink:title="#27: Siberia">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="602.0788" cy="-325.1338" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 26&#45;&#45;27 -->
+<g id="edge56" class="edge">
+<title>26&#45;&#45;27</title>
+<path fill="none" stroke="#000000" d="M537.7774,-325.1338C551.4651,-325.1338 581.3344,-325.1338 594.9994,-325.1338"/>
+</g>
+<!-- 32 -->
+<g id="node32" class="node">
+<title>32</title>
+<g id="a_node32"><a xlink:title="#32: China">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="657.6195" cy="-224.2621" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 26&#45;&#45;32 -->
+<g id="edge58" class="edge">
+<title>26&#45;&#45;32</title>
+<path fill="none" stroke="#000000" d="M536.454,-320.5374C557.6997,-303.6561 631.2675,-245.2008 652.0893,-228.6562"/>
+</g>
+<!-- 31&#45;&#45;35 -->
+<g id="edge70" class="edge">
+<title>31&#45;&#45;35</title>
+<path fill="none" stroke="#000000" d="M525.1408,-250.6653C514.4948,-241.7415 491.2632,-222.2679 480.6348,-213.3588"/>
+</g>
+<!-- 31&#45;&#45;32 -->
+<g id="edge69" class="edge">
+<title>31&#45;&#45;32</title>
+<path fill="none" stroke="#000000" d="M537.4947,-253.6308C559.5374,-248.2417 628.6696,-231.3399 650.7603,-225.939"/>
+</g>
+<!-- 36 -->
+<g id="node37" class="node">
+<title>36</title>
+<g id="a_node37"><a xlink:title="#36: India">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="602.0788" cy="-177.7059" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 31&#45;&#45;36 -->
+<g id="edge71" class="edge">
+<title>31&#45;&#45;36</title>
+<path fill="none" stroke="#000000" d="M535.5776,-249.9662C548.686,-235.7226 584.3944,-196.9218 597.3242,-182.8722"/>
+</g>
+<!-- 35&#45;&#45;36 -->
+<g id="edge76" class="edge">
+<title>35&#45;&#45;36</title>
+<path fill="none" stroke="#000000" d="M481.954,-207.0747C503.9967,-201.6855 573.1289,-184.7837 595.2196,-179.3829"/>
+</g>
+<!-- 21&#45;&#45;35 -->
+<g id="edge49" class="edge">
+<title>21&#45;&#45;35</title>
+<path fill="none" stroke="#000000" d="M379.0714,-194.2913C397.9147,-197.1263 449.0894,-204.8257 467.9893,-207.6692"/>
+</g>
+<!-- 21&#45;&#45;22 -->
+<g id="edge48" class="edge">
+<title>21&#45;&#45;22</title>
+<path fill="none" stroke="#000000" d="M374.0562,-186.1238C377.1142,-175.6568 382.7962,-156.2087 385.8255,-145.8399"/>
+</g>
+<!-- 22&#45;&#45;35 -->
+<g id="edge53" class="edge">
+<title>22&#45;&#45;35</title>
+<path fill="none" stroke="#000000" d="M393.577,-143.4911C409.3533,-156.1143 453.3299,-191.3015 469.2665,-204.0529"/>
+</g>
+<!-- 22&#45;&#45;23 -->
+<g id="edge50" class="edge">
+<title>22&#45;&#45;23</title>
+<path fill="none" stroke="#000000" d="M381.0575,-136.418C368.9043,-131.961 343.5681,-122.6696 331.3119,-118.1749"/>
+</g>
+<!-- 24 -->
+<g id="node29" class="node">
+<title>24</title>
+<g id="a_node29"><a xlink:title="#24: South Africa">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="356.1129" cy="-38.0374" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 22&#45;&#45;24 -->
+<g id="edge51" class="edge">
+<title>22&#45;&#45;24</title>
+<path fill="none" stroke="#000000" d="M385.669,-131.9758C379.843,-113.4591 363.9726,-63.018 358.226,-44.7536"/>
+</g>
+<!-- 25 -->
+<g id="node30" class="node">
+<title>25</title>
+<g id="a_node30"><a xlink:title="#25: Madagascar">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="411.6536" cy="-76.8342" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 22&#45;&#45;25 -->
+<g id="edge52" class="edge">
+<title>22&#45;&#45;25</title>
+<path fill="none" stroke="#000000" d="M390.3978,-132.266C394.9552,-120.3809 404.4563,-95.6036 409.0524,-83.6178"/>
+</g>
+<!-- 23&#45;&#45;24 -->
+<g id="edge54" class="edge">
+<title>23&#45;&#45;24</title>
+<path fill="none" stroke="#000000" d="M327.0813,-109.0155C333.0774,-94.3558 347.4241,-59.2803 353.4138,-44.6363"/>
+</g>
+<!-- 24&#45;&#45;25 -->
+<g id="edge55" class="edge">
+<title>24&#45;&#45;25</title>
+<path fill="none" stroke="#000000" d="M362.0567,-42.1894C372.6907,-49.6176 394.8599,-65.1034 405.5841,-72.5945"/>
+</g>
+<!-- 27&#45;&#45;32 -->
+<g id="edge61" class="edge">
+<title>27&#45;&#45;32</title>
+<path fill="none" stroke="#000000" d="M605.5531,-318.8238C615.5274,-300.7086 644.1737,-248.6819 654.1465,-230.5697"/>
+</g>
+<!-- 28 -->
+<g id="node33" class="node">
+<title>28</title>
+<g id="a_node33"><a xlink:title="#28: Yakutsk">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="689.357" cy="-332.8931" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 27&#45;&#45;28 -->
+<g id="edge59" class="edge">
+<title>27&#45;&#45;28</title>
+<path fill="none" stroke="#000000" d="M609.2211,-325.7687C625.6688,-327.231 666.0541,-330.8214 682.3599,-332.2711"/>
+</g>
+<!-- 27&#45;&#45;30 -->
+<g id="edge60" class="edge">
+<title>27&#45;&#45;30</title>
+<path fill="none" stroke="#000000" d="M608.9273,-323.3072C625.1623,-318.9771 665.8536,-308.1243 682.2978,-303.7384"/>
+</g>
+<!-- 27&#45;&#45;33 -->
+<g id="edge62" class="edge">
+<title>27&#45;&#45;33</title>
+<path fill="none" stroke="#000000" d="M608.2222,-321.4366C626.5245,-310.4221 680.5547,-277.9062 698.9841,-266.8152"/>
+</g>
+<!-- 32&#45;&#45;33 -->
+<g id="edge72" class="edge">
+<title>32&#45;&#45;33</title>
+<path fill="none" stroke="#000000" d="M663.0805,-228.7126C672.1659,-236.1167 690.2973,-250.8929 699.5336,-258.42"/>
+</g>
+<!-- 32&#45;&#45;36 -->
+<g id="edge73" class="edge">
+<title>32&#45;&#45;36</title>
+<path fill="none" stroke="#000000" d="M652.091,-219.6279C641.4449,-210.704 618.2133,-191.2305 607.5849,-182.3214"/>
+</g>
+<!-- 37 -->
+<g id="node38" class="node">
+<title>37</title>
+<g id="a_node38"><a xlink:title="#37: Siam">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="689.357" cy="-162.1872" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 32&#45;&#45;37 -->
+<g id="edge74" class="edge">
+<title>32&#45;&#45;37</title>
+<path fill="none" stroke="#000000" d="M661.0159,-217.619C667.1565,-205.6088 680.0281,-180.4335 686.0801,-168.5965"/>
+</g>
+<!-- 28&#45;&#45;29 -->
+<g id="edge63" class="edge">
+<title>28&#45;&#45;29</title>
+<path fill="none" stroke="#000000" d="M696.4651,-332.8931C710.1528,-332.8931 740.0221,-332.8931 753.6871,-332.8931"/>
+</g>
+<!-- 28&#45;&#45;30 -->
+<g id="edge64" class="edge">
+<title>28&#45;&#45;30</title>
+<path fill="none" stroke="#000000" d="M689.357,-325.6945C689.357,-320.6803 689.357,-314.0209 689.357,-309.0153"/>
+</g>
+<!-- 30&#45;&#45;33 -->
+<g id="edge68" class="edge">
+<title>30&#45;&#45;33</title>
+<path fill="none" stroke="#000000" d="M692.1211,-295.0978C695.0337,-287.9769 699.5927,-276.8309 702.4933,-269.7393"/>
+</g>
+<!-- 33&#45;&#45;34 -->
+<g id="edge75" class="edge">
+<title>33&#45;&#45;34</title>
+<path fill="none" stroke="#000000" d="M712.5072,-261.2787C724.8816,-258.2533 749.8416,-252.151 761.8891,-249.2055"/>
+</g>
+<!-- 36&#45;&#45;37 -->
+<g id="edge77" class="edge">
+<title>36&#45;&#45;37</title>
+<path fill="none" stroke="#000000" d="M609.2211,-176.436C625.6688,-173.5114 666.0541,-166.3306 682.3599,-163.4313"/>
+</g>
+<!-- 38 -->
+<g id="node39" class="node">
+<title>38</title>
+<g id="a_node39"><a xlink:title="#38: Indonesia">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="721.0945" cy="-115.631" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 37&#45;&#45;38 -->
+<g id="edge78" class="edge">
+<title>37&#45;&#45;38</title>
+<path fill="none" stroke="#000000" d="M693.5061,-156.1008C699.6222,-147.1291 710.986,-130.4593 717.0447,-121.5717"/>
+</g>
+<!-- 39 -->
+<g id="node40" class="node">
+<title>39</title>
+<g id="a_node40"><a xlink:title="#39: Papua New Guinea">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="800.4384" cy="-92.353" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 38&#45;&#45;39 -->
+<g id="edge79" class="edge">
+<title>38&#45;&#45;39</title>
+<path fill="none" stroke="#000000" d="M727.8593,-113.6464C742.8496,-109.2485 778.7163,-98.7258 793.6907,-94.3326"/>
+</g>
+<!-- 40 -->
+<g id="node41" class="node">
+<title>40</title>
+<g id="a_node41"><a xlink:title="#40: Western Australia">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="736.9633" cy="-38.0374" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 38&#45;&#45;40 -->
+<g id="edge80" class="edge">
+<title>38&#45;&#45;40</title>
+<path fill="none" stroke="#000000" d="M722.5028,-108.7451C725.5066,-94.0575 732.5142,-59.7921 735.5354,-45.0195"/>
+</g>
+<!-- 39&#45;&#45;40 -->
+<g id="edge81" class="edge">
+<title>39&#45;&#45;40</title>
+<path fill="none" stroke="#000000" d="M795.0265,-87.7221C783.0343,-77.4603 754.341,-52.9075 742.3615,-42.6566"/>
+</g>
+<!-- 41 -->
+<g id="node42" class="node">
+<title>41</title>
+<g id="a_node42"><a xlink:title="#41: Eastern Australia">
+<ellipse fill="#000000" stroke="#000000" stroke-width="0" cx="792.504" cy="-38.0374" rx="7" ry="7"/>
+</a>
+</g>
+</g>
+<!-- 39&#45;&#45;41 -->
+<g id="edge82" class="edge">
+<title>39&#45;&#45;41</title>
+<path fill="none" stroke="#000000" d="M799.4011,-85.2522C797.8721,-74.7851 795.0311,-55.3371 793.5164,-44.9683"/>
+</g>
+<!-- 40&#45;&#45;41 -->
+<g id="edge83" class="edge">
+<title>40&#45;&#45;41</title>
+<path fill="none" stroke="#000000" d="M744.2243,-38.0374C754.9274,-38.0374 774.8141,-38.0374 785.4168,-38.0374"/>
+</g>
+</g>
+</svg>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>And here's an example of a (poorly played) game played between three random agents, on the <em>classic</em> map:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[14]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">IPython.display</span>
+<span class="n">IPython</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">Video</span><span class="p">(</span><span class="s1">&#39;https://douglasorr.github.io/Preeminence/img/eg_classic.mp4&#39;</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt output_prompt">Out[14]:</div>
+
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<video src="https://douglasorr.github.io/Preeminence/img/eg_classic.mp4" controls  >
+      Your browser does not support the <code>video</code> element.
+    </video>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Tournaments">Tournaments<a class="anchor-link" href="#Tournaments">&#182;</a></h2><p>You will hopefully soon have some different candidate agents (or settings for agents) to try. Since Preeminence includes a fair amount of randomness, we recommend comparing them based on multiple games. We have some basic tournaments that you can use to get started, or of course you can define your own based on <a href="index.html#preem.Game.play"><code>Game.play</code></a>. Here are the built-in 1v1 and multiplayer round robin tournaments:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[15]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">Tournament</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/classic.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()])</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt output_prompt">Out[15]:</div>
+
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<table>
+<thead>
+<tr><th style="text-align: right;">  player index</th><th>name                </th><th style="text-align: right;">  win rate</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: right;">             2</td><td>RandomAgent@14f87f60</td><td style="text-align: right;">     55.0%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>RandomAgent@14f87f28</td><td style="text-align: right;">     53.3%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>RandomAgent@14f87fd0</td><td style="text-align: right;">     51.7%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>RandomAgent@14f87f98</td><td style="text-align: right;">     40.0%</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[16]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">Tournament</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/classic.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()],</span>
+                 <span class="n">players_per_game</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">rounds</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt output_prompt">Out[16]:</div>
+
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<table>
+<thead>
+<tr><th style="text-align: right;">  player index</th><th>name                </th><th style="text-align: right;">  win rate</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: right;">             2</td><td>RandomAgent@14fb3908</td><td style="text-align: right;">     27.2%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>RandomAgent@14fb3550</td><td style="text-align: right;">     26.1%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>RandomAgent@14fb37f0</td><td style="text-align: right;">     24.4%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>RandomAgent@14fb3320</td><td style="text-align: right;">     22.2%</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+
 </div>
 </div>
 
