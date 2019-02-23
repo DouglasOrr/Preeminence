@@ -1204,7 +1204,7 @@ class TournamentResult:
 
     def __repr__(self):
         return &#39;TournamentResult({})&#39;.format(
-            &#39;, &#39;.join(&#39;{} ({:.1%})&#39;.format(GameResult._name(self.player_names, idx), win_rate)
+            &#39;, &#39;.join(&#39;{} ({:.1%})&#39;.format(GameResult._name(self.player_names, idx), win_rate or 0)
                       for idx, _, win_rate in self.ranked_players))
 
     def _repr_html_(self):
@@ -1226,7 +1226,8 @@ class TournamentResult:
         &#34;&#34;&#34;
         win_rate = self.win_rate
         return [(index, self.player_names[index], win_rate[index])
-                for index in sorted(range(self.n_players), key=lambda x: win_rate[x], reverse=True)]
+                for index in sorted(range(self.n_players), key=lambda x: win_rate[x] or 0,
+                                    reverse=True)]
 
     @property
     def win_rate(self):
@@ -1242,7 +1243,7 @@ class TournamentResult:
                 played[winner] += 1
             for eliminated in game.eliminated:
                 played[eliminated] += 1
-        return [nwin / nplayed for nwin, nplayed in zip(wins, played)]
+        return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]
 
 
 class Tournament:
@@ -2963,7 +2964,7 @@ def run(cls, map, agents, rounds=10, players_per_game=2,
 
     def __repr__(self):
         return &#39;TournamentResult({})&#39;.format(
-            &#39;, &#39;.join(&#39;{} ({:.1%})&#39;.format(GameResult._name(self.player_names, idx), win_rate)
+            &#39;, &#39;.join(&#39;{} ({:.1%})&#39;.format(GameResult._name(self.player_names, idx), win_rate or 0)
                       for idx, _, win_rate in self.ranked_players))
 
     def _repr_html_(self):
@@ -2985,7 +2986,8 @@ def run(cls, map, agents, rounds=10, players_per_game=2,
         &#34;&#34;&#34;
         win_rate = self.win_rate
         return [(index, self.player_names[index], win_rate[index])
-                for index in sorted(range(self.n_players), key=lambda x: win_rate[x], reverse=True)]
+                for index in sorted(range(self.n_players), key=lambda x: win_rate[x] or 0,
+                                    reverse=True)]
 
     @property
     def win_rate(self):
@@ -3001,7 +3003,7 @@ def run(cls, map, agents, rounds=10, players_per_game=2,
                 played[winner] += 1
             for eliminated in game.eliminated:
                 played[eliminated] += 1
-        return [nwin / nplayed for nwin, nplayed in zip(wins, played)]</code></pre>
+        return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]</code></pre>
 </details>
 <h3>Instance variables</h3>
 <dl>
@@ -3038,7 +3040,8 @@ def ranked_players(self):
     &#34;&#34;&#34;
     win_rate = self.win_rate
     return [(index, self.player_names[index], win_rate[index])
-            for index in sorted(range(self.n_players), key=lambda x: win_rate[x], reverse=True)]</code></pre>
+            for index in sorted(range(self.n_players), key=lambda x: win_rate[x] or 0,
+                                reverse=True)]</code></pre>
 </details>
 </dd>
 <dt id="preem.TournamentResult.win_rate"><code class="name">var <span class="ident">win_rate</span></code></dt>
@@ -3061,7 +3064,7 @@ def win_rate(self):
             played[winner] += 1
         for eliminated in game.eliminated:
             played[eliminated] += 1
-    return [nwin / nplayed for nwin, nplayed in zip(wins, played)]</code></pre>
+    return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]</code></pre>
 </details>
 </dd>
 </dl>
