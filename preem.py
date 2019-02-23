@@ -4,14 +4,8 @@
 
 **Get started now with our friendly [tutorial](tutorial.html).**
 
-Keep reading for tips on how to do useful things when developing your agent, or see the class reference
-below for details (we'd suggest starting with `Agent`, `Map`, `World`, `PlayerState` and `Game`).`
-
-## Howto guide
-
-TODO...
+After the tutorial, we'd suggest browsing through `Agent`, `Map`, `World`, `PlayerState` and `Game`).
 """
-
 
 import collections
 import json
