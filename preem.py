@@ -1210,7 +1210,7 @@ class TournamentResult:
 
 
 class Tournament:
-    """Utilities to running simple tournaments (multiple games)."""
+    """Run simple tournaments (multiple games, in parallel)."""
     class _Runner:
         def __init__(self, map, agents):
             self.map = map
