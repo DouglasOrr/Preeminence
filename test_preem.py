@@ -14,9 +14,10 @@ import agents.random_agent as random_agent
 # Utility & helper unit tests
 
 def test_game_result():
-    # pylint: disable=no-member
-    assert P.GameResult([1, 2], [3, 0]).outright_winner() is None
-    assert P.GameResult([2], [3, 1, 0]).outright_winner() == 2
+    player_names = ['zero', 'one', 'two', 'three']
+    assert P.GameResult([1, 2], [3, 0], player_names).outright_winner is None
+    assert P.GameResult([2], [3, 1, 0], player_names).outright_winner == 2
+    assert 'winners={#2:two}' in str(P.GameResult([2], [3, 1, 0], player_names))
 
 
 def test_get_matching_sets():  # implicitly tests is_matching_set
@@ -618,10 +619,10 @@ def test_play_game():
     assert game.map is map_
     for n, event in enumerate(game):
         # log should already contain this latest event
-        assert game.world.event_log[-1] == event._replace(agent=str(event.agent))
+        assert game.world.event_log[-1] == event._replace(agent=repr(event.agent), state=None)
         assert len(game.world.event_log) == n + 1
     assert game.world._repr_svg_()
-    assert game.world.event_log[-1]._repr_svg_()
+    assert event._repr_svg_()
     # game should be over
     assert len(game.result.winners) == 1 or game.world.turn == map_.max_turns
 
@@ -654,7 +655,7 @@ def test_fuzz(map_name):
             assert set(result.winners) | set(result.eliminated) == set(range(n_players))
             assert not (set(result.winners) & set(result.eliminated))
         if map_name in SMALL_MAPS:
-            winners = dict(collections.Counter([r.outright_winner() for r in results]))  # pylint: disable=no-member
+            winners = dict(collections.Counter([r.outright_winner for r in results]))
             # small maps, aggressive agents => there should normally be a winner
             n_draws = winners.pop(None, 0)
             assert n_draws < 0.1 * ntrials

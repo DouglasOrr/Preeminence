@@ -24,6 +24,7 @@ import os
 import time
 import subprocess
 import tempfile
+import tabulate
 import itertools as it
 import networkx as nx
 
@@ -173,7 +174,7 @@ class _View:
                         frame_count += 1
                 # final "game over" frame
                 g = nx.nx_agraph.to_agraph(cls.world_to_graph(
-                    game.world, player_index=game.result.outright_winner()))
+                    game.world, player_index=game.result.outright_winner))
                 g.write(path=dot_path.format(dir=dir, n=frame_count))
                 render(render_command.format(dpi=dpi, dir=dir, n=frame_count))
                 playlist.write('file {n:04d}.png\nduration {time}\nfile {n:04d}.png\n'.format(
@@ -297,7 +298,8 @@ class World:
                       game, in order of elimination (does not include neutral)"""
         self.event_log = []
         """`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &
-        actions of every other agent"""
+        actions of every other agent. Note that in this log the `agent` has been replaced with its'
+        `repr`, and the `state` has been set to `None` (to prevent private information leakage)."""
 
     def __repr__(self):
         return 'World[map={}, players={}]'.format(self.map, self.n_players)
@@ -306,7 +308,7 @@ class World:
         return _View.to_svg(_View.world_to_graph(self))
 
     def _add_event(self, event):
-        self.event_log.append(event._replace(agent=str(event.agent)))
+        self.event_log.append(event._replace(agent=repr(event.agent), state=None))
         return event
 
     @property
@@ -583,6 +585,10 @@ Move.count.__doc__ = """`int` -- number of armies to move."""
 
 class Agent:
     """Autonomous agent for playing the game (extend this to create your strategic agent)."""
+
+    def __repr__(self):
+        """A simplified representation."""
+        return '{}@{:08x}'.format(type(self).__name__, id(self) & 0xffffffff)
 
     def place(self, state):
         """Place a single army on one of your territories in the world (during the initial placement phase).
@@ -917,25 +923,62 @@ def _main_phase(world, agents_and_states, rand):
         pass
 
 
-GameResult = collections.namedtuple('GameResult', ('winners', 'eliminated'))
-GameResult.__doc__ = """The outcome of a single game."""
-GameResult.winners.__doc__ = """`[int]` -- player IDs of game winners.
+class GameResult:
+    """The outcome of a single game."""
+    __slots__ = ('winners', 'eliminated', 'player_names')
 
-This could be multiple agents (in the case of a turn-limit tie).
-"""
-GameResult.eliminated.__doc__ = """`[int]` -- eliminated player IDs listed in order.
+    def __init__(self, winners, eliminated, player_names):
+        self.winners = winners
+        """`{int}` -- set of player IDs of game winners.
 
-(i.e. `eliminated[0]` = knocked out first).
-"""
+        This could be multiple players (in the case of a turn-limit tie).
+        """
+        self.eliminated = eliminated
+        """`[int]` -- eliminated player IDs listed in order.
+
+        (i.e. `eliminated[0]` = knocked out first).
+        """
+        self.player_names = player_names
+        """`[str]` -- friendly names for the players."""
+
+    @staticmethod
+    def _name(player_names, player_index):
+        return '#{index}:{name}'.format(index=player_index, name=player_names[player_index])
+
+    def __repr__(self):
+        return 'GameResult(winners={{{winners}}}, eliminated=[{eliminated}])'.format(
+            winners=', '.join(self._name(self.player_names, winner) for winner in self.winners),
+            eliminated=', '.join(self._name(self.player_names, eliminated) for eliminated in self.winners),
+        )
+
+    @property
+    def outright_winner(self):
+        """Get the outright winner index (if there is one, otherwise `None`).
+
+        returns -- `int or None` -- player ID of winner, if there was a single winner
+        """
+        return next(iter(self.winners)) if len(self.winners) == 1 else None
 
 
-def _outright_winner(self):
-    """Get the outright winner (if there is one, otherwise `None`).
+# GameResult = collections.namedtuple('GameResult', ('winners', 'eliminated'))
+# GameResult.__doc__ = """The outcome of a single game."""
+# GameResult.winners.__doc__ = """`[int]` -- player IDs of game winners.
 
-    returns -- `int or None` -- player ID of winner, if there was a single winner
-    """
-    return next(iter(self.winners)) if len(self.winners) == 1 else None
-GameResult.outright_winner = _outright_winner  # NOQA
+# This could be multiple agents (in the case of a turn-limit tie).
+# """
+# GameResult.eliminated.__doc__ = """`[int]` -- eliminated player IDs listed in order.
+
+# (i.e. `eliminated[0]` = knocked out first).
+# """
+
+
+# def _outright_winner(self):
+#     """Get the outright winner (if there is one, otherwise `None`).
+
+#     returns -- `int or None` -- player ID of winner, if there was a single winner
+#     """
+#     return next(iter(self.winners)) if len(self.winners) == 1 else None
+# GameResult.outright_winner = _outright_winner  # NOQA
 
 
 class Game:
@@ -1018,7 +1061,7 @@ class Game:
         Note that this still returns a result if the game is not finished (inevitably a tie).
         """
         winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
-        return GameResult(winners, self.world.eliminated_players)
+        return GameResult(winners, self.world.eliminated_players, self.world.player_names)
 
     @classmethod
     def start(cls, map, agents, rand=random):
@@ -1070,9 +1113,99 @@ class Game:
         `agents` -- `[Agent]` -- `Agent` instances who are playing the game
 
         returns -- `GameResult` -- outcome of the game (note: you may then find it simplest to
-                   call `GameResult.outright_winner()`)
+                   use `GameResult.outright_winner`)
         """
         game = cls.start(map, agents, rand=rand)
         for _ in game:
             pass  # simply exhaust the iterator (as we're not interested in watching the game!)
         return game.result
+
+
+class Tournament:
+    """Helpers for running simple tournaments."""
+    class Result:
+        """Represents the outcome of a tournament, including individual game results."""
+        def __init__(self, player_names, games):
+            self.player_names = player_names
+            """`[str]` -- list of player names that participated"""
+            self.games = games
+            """`[GameResult]` -- list of `GameResult` for each game played in the tournament"""
+
+        def __repr__(self):
+            return 'Tournament.Result({})'.format(
+                ', '.join('{} ({:.1%})'.format(GameResult._name(self.player_names, idx), win_rate)
+                          for idx, _, win_rate in self.ranked_players))
+
+        def _repr_html_(self):
+            return tabulate.tabulate(self.ranked_players,
+                                     tablefmt='html',
+                                     headers=['player index', 'name', 'win rate'],
+                                     floatfmt='.1%')
+
+        @property
+        def n_players(self):
+            """Number of players in the tournament."""
+            return len(self.player_names)
+
+        @property
+        def ranked_players(self):
+            """Returns the players (index, name, win_rate) in descending win rate order.
+
+            returns -- `[(int, str, float)]` -- list of `(player_index, player_name, win_rate)`
+            """
+            win_rate = self.win_rate
+            return [(index, self.player_names[index], win_rate[index])
+                    for index in sorted(range(self.n_players), key=lambda x: win_rate[x], reverse=True)]
+
+        @property
+        def win_rate(self):
+            """Count the win rate for each player.
+
+            returns -- `[float]` -- win rate for each player
+            """
+            wins = [0 for _ in range(self.n_players)]
+            played = [0 for _ in range(self.n_players)]
+            for game in self.games:
+                for winner in game.winners:
+                    wins[winner] += 1 / len(game.winners)
+                    played[winner] += 1
+                for eliminated in game.eliminated:
+                    played[eliminated] += 1
+            return [nwin / nplayed for nwin, nplayed in zip(wins, played)]
+
+    class _Runner:
+        def __init__(self, map, agents):
+            self.map = map
+            self.agents = agents
+
+        def __call__(self, indices):
+            result = Game.play(self.map, [self.agents[n] for n in indices])
+            return GameResult(
+                winners={indices[w] for w in result.winners},
+                eliminated=[indices[e] for e in result.eliminated],
+                player_names=[str(a) for a in self.agents]
+            )
+
+    @classmethod
+    def run(cls, map, agents, rounds=10, players_per_game=2,
+            n_processes=multiprocessing.cpu_count() + 1):
+        """Run a round-robin tournament, in parallel across different processes, and return results.
+
+        `map` -- `Map`
+
+        `agents` -- `[Agent]` -- agents to participate in the tournament
+
+        `players_per_game` -- `int` -- e.g. 2 (for 1v1), or len(agents) for repeated all-vs-all
+
+        `n_processes` -- `int` -- parallelism
+
+        returns -- `Tournament.Result` -- uotcome of all the games
+        """
+        agent_indices = list(range(len(agents)))
+        with multiprocessing.Pool(n_processes) as pool:
+            results = list(pool.map(
+                cls._Runner(map, agents),
+                (indices
+                 for _ in range(rounds)
+                 for indices in it.combinations(agent_indices, players_per_game))))
+            return cls.Result([str(agent) for agent in agents], results)
