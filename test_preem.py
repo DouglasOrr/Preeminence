@@ -619,7 +619,8 @@ def test_play_game():
     assert game.map is map_
     for n, event in enumerate(game):
         # log should already contain this latest event
-        assert game.world.event_log[-1] == event._replace(agent=repr(event.agent), state=None)
+        assert game.world.event_log[-1] == event._replace(agent=repr(event.agent),
+                                                          state=event.state.player_index)
         assert len(game.world.event_log) == n + 1
     assert game.world._repr_svg_()
     assert event._repr_svg_()

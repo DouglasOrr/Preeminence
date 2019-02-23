@@ -3,3 +3,5 @@ __pycache__
 /docs
 .coverage
 .ipynb_checkpoints
+*.mp4
+*.svg

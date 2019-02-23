@@ -55,10 +55,7 @@ def docs(examples):
     docker('pdoc3 --html --overwrite --html-dir docs preem || true')
     os.rename('docs/preem.html', 'docs/index.html')
     docker('jupyter nbconvert --execute --to html Tutorial.ipynb --output-dir docs --output tutorial')
-    if examples or not all(os.path.isfile(f) for f in ['docs/eg_classic.svg',
-                                                       'docs/eg_classic.mp4',
-                                                       'docs/agent_flow.svg']):
-        docker('python3 render_doc_examples.py')
+    docker('python3 render_doc_examples.py {}'.format('--force' if examples else ''))
 
 
 def notebook(port):
@@ -66,8 +63,7 @@ def notebook(port):
     sh('docker rm -f {name} || true', name=name)
     docker('start-notebook.sh --port {port}',
            docker_detach=True,
-           docker_args='--name {name} -p {port}:{port}  -e JUPYTER_ENABLE_LAB=yes'.format(
-               port=port, name=name),
+           docker_args='--name {name} -p {port}:{port}'.format(port=port, name=name),
            port=port)
 
     print('Waiting for server to start, so we can tell you your token...')
@@ -75,7 +71,7 @@ def notebook(port):
     token = subprocess.check_output(
         'docker logs {name} 2>&1 | grep -oP \'(?<=token=)(.+)$\' | head -1'.format(name=name),
         shell=True).decode('utf8').strip()
-    print('\nSee: http://localhost:{port}/lab?token={token}'.format(port=port, token=token))
+    print('\nSee: http://localhost:{port}/tree?token={token}'.format(port=port, token=token))
 
 
 if __name__ == '__main__':

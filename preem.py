@@ -5,7 +5,7 @@
 **Get started now with our friendly [tutorial](tutorial.html).**
 
 Keep reading for tips on how to do useful things when developing your agent, or see the class reference
-below for details (we'd suggest starting with `Agent`, `World`, `Map` and `PlayerState`).`
+below for details (we'd suggest starting with `Agent`, `Map`, `World`, `PlayerState` and `Game`).`
 
 ## Howto guide
 
@@ -298,8 +298,9 @@ class World:
                       game, in order of elimination (does not include neutral)"""
         self.event_log = []
         """`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &
-        actions of every other agent. Note that in this log the `agent` has been replaced with its'
-        `repr`, and the `state` has been set to `None` (to prevent private information leakage)."""
+        actions of every other agent. Note that in this log the `agent` has been replaced with
+        `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
+        private information leakage)."""
 
     def __repr__(self):
         return 'World[map={}, players={}]'.format(self.map, self.n_players)
@@ -308,24 +309,38 @@ class World:
         return _View.to_svg(_View.world_to_graph(self))
 
     def _add_event(self, event):
-        self.event_log.append(event._replace(agent=repr(event.agent), state=None))
+        self.event_log.append(event._replace(agent=repr(event.agent),
+                                             state=event.state.player_index))
         return event
 
     @property
     def n_players(self):
-        """Number of players, including neutral if applicable."""
+        """Number of players, including neutral if applicable.
+
+        returns -- `int` -- number of players in the game
+        """
         return len(self.player_names)
 
     def count_territories(self, owner):
-        """How many territories are owned by `owner`?"""
+        """How many territories are owned by `owner`?
+
+        returns -- `int` -- number of territories owned
+        """
         return sum(territory_owner == owner for territory_owner in self.owners)
 
     def territories_belonging_to(self, owner):
-        """Get a list of territory IDs belonging to `owner`."""
+        """Get a list of territory IDs belonging to `owner`.
+
+        returns -- `[int]` -- list of territory IDs where `world.owners[id] == owner`
+        """
         return [idx for idx, iowner in enumerate(self.owners) if iowner == owner]
 
     @property
     def next_set_value(self):
+        """Get the value of the next set to be declared.
+
+        returns -- `int` -- number of bonus armies to be received when redeeming the next set
+        """
         return value_of_set(self.sets_redeemed)
 
 
@@ -584,10 +599,25 @@ Move.count.__doc__ = """`int` -- number of armies to move."""
 
 
 class Agent:
-    """Autonomous agent for playing the game (extend this to create your strategic agent)."""
+    """Autonomous agent for playing the game (extend this to create your strategic agent).
+
+    To implement an Agent, you must subclass `Agent`, implementing the abstract methods `Agent.place`,
+    `Agent.redeem`, `Agent.reinforce` and `Agent.act`. These methods are called during a game of Preeminence
+    in the following pattern:
+    ![Agent method flow](agent_flow.svg)
+
+     - The game sets up the map, assigns starting territories randomly to each player.
+     - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
+       until enough initial armies have been placed.
+     - For each turn, game:
+
+        - calls `redeem` to decide which, if any, cards should be declared for bonus armies,
+        - calls `reinforce` to place multiple armies on one or more owned territories,
+        - calls `act` repeatedly, until it returns a turn-ending action (such as a move).
+    """
 
     def __repr__(self):
-        """A simplified representation."""
+        """Simplified string identifying the agent."""
         return '{}@{:08x}'.format(type(self).__name__, id(self) & 0xffffffff)
 
     def place(self, state):
@@ -597,6 +627,11 @@ class Agent:
         of the game, in order to allocate your initial set of armies to the map, and is not called during
         the main turn-based phase.
 
+        The method must return:
+
+         - a valid territory index (in the range `[0..state.map.n_territories]`)
+         - an owned (friendly) territory index (`state.world.owners[index] == state.player_index`)
+
         `state` -- `PlayerState`
 
         returns -- `int` -- territory to place the new army on
@@ -604,9 +639,21 @@ class Agent:
         raise NotImplementedError
 
     def redeem(self, state):
-        """Decide whether to redeem any sets of cards you have.
+        """Decide whether to redeem any sets of cards you have, called before `reinforce`.
+
+        The set being redeemed has reinforcement value (the number of extra armies received on the
+        next `reinforce`) equal to `World.next_set_value()`. Sets also provide an additional bonus
+        of 2 armies immediately placed on each `Card.territory` if owned by the current player.
+        Note that the reinforcement value of sets increases over time (see `value_of_set()` for details).
 
         Note that this method may not be called every turn (e.g. if you have fewer than 3 cards).
+        Implementors may find `get_matching_sets()` useful.
+
+        The method must:
+
+         - either return 3 of the cards from `state.cards`, or `None`
+         - always return a set of cards if `len(state.cards) >= 5` (in which case you will always
+           have at least one valid set in `state.cards`)
 
         `state` -- `PlayerState`
 
@@ -615,10 +662,26 @@ class Agent:
         raise NotImplementedError
 
     def reinforce(self, state, count):
-        """Place multiple armies on owned territories.
+        """Place multiple armies on owned territories before any `act` calls within a turn.
 
-        This method is called once each turn before `Agent.act()`, so may be used to perform
-        pre-planning of multiple actions.
+        The method must:
+
+         - return a dictionary of `{owned_territory_id: reinforce_count}`
+         - ensure the sum of reinforce_count exactly equals the parameter `count`
+         - ensure no negative reinforce counts
+
+        The number of reinforcements received is the sum of three contributions:
+
+         - _Territory armies_ are calculated based on the number of territories you control
+           (see `World.count_territories`, `count_reinforcements()`), you will always receive
+           at least 3.
+         - _Continent armies_ are awarded for every complete continent that you own. Compare
+           `Map.continents` and `World.owners` to test if a continent is owned, and see
+           `Map.continent_values` to see how many armies each continent is worth.
+         - _Set armies_ are awarded when your agent chose to redeem a set (see `Agent.redeem`).
+
+        _Note that this method is called once each turn before `Agent.act()`, so can be used to
+        pre-plan of multiple actions, if needed._
 
         `state` -- `PlayerState`
 
@@ -629,7 +692,7 @@ class Agent:
         raise NotImplementedError
 
     def act(self, state, earned_card):
-        """Take an action as part of a turn.
+        """Take an action (attack, move, or end turn) as part of a turn.
 
         This method is called multiple times, until it returns a `Move` or `None` action, as the agent
         is permitted to make any number of `Attack` actions.
@@ -948,7 +1011,7 @@ class GameResult:
     def __repr__(self):
         return 'GameResult(winners={{{winners}}}, eliminated=[{eliminated}])'.format(
             winners=', '.join(self._name(self.player_names, winner) for winner in self.winners),
-            eliminated=', '.join(self._name(self.player_names, eliminated) for eliminated in self.winners),
+            eliminated=', '.join(self._name(self.player_names, eliminated) for eliminated in self.eliminated),
         )
 
     @property
@@ -958,27 +1021,6 @@ class GameResult:
         returns -- `int or None` -- player ID of winner, if there was a single winner
         """
         return next(iter(self.winners)) if len(self.winners) == 1 else None
-
-
-# GameResult = collections.namedtuple('GameResult', ('winners', 'eliminated'))
-# GameResult.__doc__ = """The outcome of a single game."""
-# GameResult.winners.__doc__ = """`[int]` -- player IDs of game winners.
-
-# This could be multiple agents (in the case of a turn-limit tie).
-# """
-# GameResult.eliminated.__doc__ = """`[int]` -- eliminated player IDs listed in order.
-
-# (i.e. `eliminated[0]` = knocked out first).
-# """
-
-
-# def _outright_winner(self):
-#     """Get the outright winner (if there is one, otherwise `None`).
-
-#     returns -- `int or None` -- player ID of winner, if there was a single winner
-#     """
-#     return next(iter(self.winners)) if len(self.winners) == 1 else None
-# GameResult.outright_winner = _outright_winner  # NOQA
 
 
 class Game:
@@ -1121,58 +1163,59 @@ class Game:
         return game.result
 
 
+class TournamentResult:
+    """Represents the outcome of a tournament, including individual game results."""
+    def __init__(self, player_names, games):
+        self.player_names = player_names
+        """`[str]` -- list of player names that participated"""
+        self.games = games
+        """`[GameResult]` -- list of `GameResult` for each game played in the tournament"""
+
+    def __repr__(self):
+        return 'TournamentResult({})'.format(
+            ', '.join('{} ({:.1%})'.format(GameResult._name(self.player_names, idx), win_rate)
+                      for idx, _, win_rate in self.ranked_players))
+
+    def _repr_html_(self):
+        return tabulate.tabulate(self.ranked_players,
+                                 tablefmt='html',
+                                 headers=['player index', 'name', 'win rate'],
+                                 floatfmt='.1%')
+
+    @property
+    def n_players(self):
+        """Number of players in the tournament."""
+        return len(self.player_names)
+
+    @property
+    def ranked_players(self):
+        """Returns the players (index, name, win_rate) in descending win rate order.
+
+        returns -- `[(int, str, float)]` -- list of `(player_index, player_name, win_rate)`
+        """
+        win_rate = self.win_rate
+        return [(index, self.player_names[index], win_rate[index])
+                for index in sorted(range(self.n_players), key=lambda x: win_rate[x], reverse=True)]
+
+    @property
+    def win_rate(self):
+        """Count the win rate for each player.
+
+        returns -- `[float]` -- win rate for each player
+        """
+        wins = [0 for _ in range(self.n_players)]
+        played = [0 for _ in range(self.n_players)]
+        for game in self.games:
+            for winner in game.winners:
+                wins[winner] += 1 / len(game.winners)
+                played[winner] += 1
+            for eliminated in game.eliminated:
+                played[eliminated] += 1
+        return [nwin / nplayed for nwin, nplayed in zip(wins, played)]
+
+
 class Tournament:
-    """Helpers for running simple tournaments."""
-    class Result:
-        """Represents the outcome of a tournament, including individual game results."""
-        def __init__(self, player_names, games):
-            self.player_names = player_names
-            """`[str]` -- list of player names that participated"""
-            self.games = games
-            """`[GameResult]` -- list of `GameResult` for each game played in the tournament"""
-
-        def __repr__(self):
-            return 'Tournament.Result({})'.format(
-                ', '.join('{} ({:.1%})'.format(GameResult._name(self.player_names, idx), win_rate)
-                          for idx, _, win_rate in self.ranked_players))
-
-        def _repr_html_(self):
-            return tabulate.tabulate(self.ranked_players,
-                                     tablefmt='html',
-                                     headers=['player index', 'name', 'win rate'],
-                                     floatfmt='.1%')
-
-        @property
-        def n_players(self):
-            """Number of players in the tournament."""
-            return len(self.player_names)
-
-        @property
-        def ranked_players(self):
-            """Returns the players (index, name, win_rate) in descending win rate order.
-
-            returns -- `[(int, str, float)]` -- list of `(player_index, player_name, win_rate)`
-            """
-            win_rate = self.win_rate
-            return [(index, self.player_names[index], win_rate[index])
-                    for index in sorted(range(self.n_players), key=lambda x: win_rate[x], reverse=True)]
-
-        @property
-        def win_rate(self):
-            """Count the win rate for each player.
-
-            returns -- `[float]` -- win rate for each player
-            """
-            wins = [0 for _ in range(self.n_players)]
-            played = [0 for _ in range(self.n_players)]
-            for game in self.games:
-                for winner in game.winners:
-                    wins[winner] += 1 / len(game.winners)
-                    played[winner] += 1
-                for eliminated in game.eliminated:
-                    played[eliminated] += 1
-            return [nwin / nplayed for nwin, nplayed in zip(wins, played)]
-
+    """Utilities to running simple tournaments (multiple games)."""
     class _Runner:
         def __init__(self, map, agents):
             self.map = map
@@ -1199,7 +1242,7 @@ class Tournament:
 
         `n_processes` -- `int` -- parallelism
 
-        returns -- `Tournament.Result` -- uotcome of all the games
+        returns -- `TournamentResult` -- uotcome of all the games
         """
         agent_indices = list(range(len(agents)))
         with multiprocessing.Pool(n_processes) as pool:
@@ -1208,4 +1251,4 @@ class Tournament:
                 (indices
                  for _ in range(rounds)
                  for indices in it.combinations(agent_indices, players_per_game))))
-            return cls.Result([str(agent) for agent in agents], results)
+            return TournamentResult([str(agent) for agent in agents], results)
