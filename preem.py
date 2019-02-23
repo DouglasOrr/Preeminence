@@ -1,6 +1,6 @@
 """Preeminence is a game in which autonomous agents attempt world domination in turn based strategy.
 
-![Example classic map](eg_classic.svg)
+![Example classic map](img/eg_classic.svg)
 
 **Get started now with our friendly [tutorial](tutorial.html).**
 
@@ -604,7 +604,7 @@ class Agent:
     To implement an Agent, you must subclass `Agent`, implementing the abstract methods `Agent.place`,
     `Agent.redeem`, `Agent.reinforce` and `Agent.act`. These methods are called during a game of Preeminence
     in the following pattern:
-    ![Agent method flow](agent_flow.svg)
+    ![Agent method flow](img/agent_flow.svg)
 
      - The game sets up the map, assigns starting territories randomly to each player.
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
