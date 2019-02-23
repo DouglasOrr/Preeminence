@@ -51,10 +51,14 @@ def check():
     docker('pylint --errors-only *.py run')
 
 
-def docs():
+def docs(examples):
     docker('pdoc3 --html --overwrite --html-dir docs preem || true')
     os.rename('docs/preem.html', 'docs/index.html')
     docker('jupyter nbconvert --execute --to html Tutorial.ipynb --output-dir docs --output tutorial')
+    if examples or not all(os.path.isfile(f) for f in ['docs/eg_classic.svg',
+                                                       'docs/eg_classic.mp4',
+                                                       'docs/agent_flow.svg']):
+        docker('python3 render_doc_examples.py')
 
 
 def notebook(port):
@@ -89,7 +93,9 @@ if __name__ == '__main__':
     p.add_argument('-k', '--filter', help='filter tests matching this pattern')
     p.set_defaults(action=test)
     subs.add_parser('check', help='run all checks (including slow tests)').set_defaults(action=check)
-    subs.add_parser('docs', help='generate documentation').set_defaults(action=docs)
+    p = subs.add_parser('docs', help='generate documentation')
+    p.add_argument('--examples', action='store_true', help='re-render the documentation examples')
+    p.set_defaults(action=docs)
     p = subs.add_parser('notebook', help='run dev notebook')
     p.add_argument('--port', default='8888', help='port to serve on')
     p.set_defaults(action=notebook)

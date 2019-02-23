@@ -7,7 +7,7 @@ import unittest.mock as um
 import numpy as np
 import networkx as nx
 
-import preem
+import preem as P
 import agents.random_agent as random_agent
 
 
@@ -15,43 +15,41 @@ import agents.random_agent as random_agent
 
 def test_game_result():
     # pylint: disable=no-member
-    assert preem.GameResult([1, 2], [3, 0]).outright_winner() is None
-    assert preem.GameResult([2], [3, 1, 0]).outright_winner() == 2
+    assert P.GameResult([1, 2], [3, 0]).outright_winner() is None
+    assert P.GameResult([2], [3, 1, 0]).outright_winner() == 2
 
 
 def test_get_matching_sets():  # implicitly tests is_matching_set
-    assert list(preem.get_matching_sets([])) == []
-    C = preem.Card
-    assert list(preem.get_matching_sets([C(0, 10), C(1, 20), C(0, 30), C(1, 40)])) == []
-    assert list(preem.get_matching_sets([C(1, 10), C(1, 20), C(1, 30)])) == \
+    assert list(P.get_matching_sets([])) == []
+    C = P.Card
+    assert list(P.get_matching_sets([C(0, 10), C(1, 20), C(0, 30), C(1, 40)])) == []
+    assert list(P.get_matching_sets([C(1, 10), C(1, 20), C(1, 30)])) == \
         [(C(1, 10), C(1, 20), C(1, 30))]
     assert [tuple(c.symbol for c in set_)
-            for set_ in preem.get_matching_sets([C(0, 10), C(1, 20), C(2, 30), C(2, 40), C(2, 50)])] == \
+            for set_ in P.get_matching_sets([C(0, 10), C(1, 20), C(2, 30), C(2, 40), C(2, 50)])] == \
         [(0, 1, 2), (0, 1, 2), (0, 1, 2), (2, 2, 2)]
 
 
 def test_value_of_set():
-    assert [preem.value_of_set(n) for n in range(8)] == \
+    assert [P.value_of_set(n) for n in range(8)] == \
         [4, 6, 8, 10, 12, 15, 20, 25]
 
 
 def test_count_reinforcements():
-    assert preem.count_reinforcements(1) == 3
-    assert preem.count_reinforcements(11) == 3
-    assert preem.count_reinforcements(12) == 4
-    assert preem.count_reinforcements(32) == 10
+    assert P.count_reinforcements(1) == 3
+    assert P.count_reinforcements(11) == 3
+    assert P.count_reinforcements(12) == 4
+    assert P.count_reinforcements(32) == 10
 
 
 def test_get_all_possible_attacks_or_moves():
-    world = preem.World(preem.Map.load_file('maps/mini.json'),
-                        ['one', 'two', 'three'],
-                        has_neutral=False)
+    world = P.World(P.Map.load('maps/mini.json'), ['one', 'two', 'three'], has_neutral=False)
     # territory     0  1  2  3  4  5
     world.owners = [1, 0, 1, 2, 1, 1]
     world.armies = [5, 2, 2, 2, 1, 3]
 
-    assert set(preem.get_all_possible_attacks(preem.PlayerState(world, 1))) == {
-        preem.Attack(from_, to, count)
+    assert set(P.get_all_possible_attacks(P.PlayerState(world, 1))) == {
+        P.Attack(from_, to, count)
         for from_, to, count in [
                 (0, 1, 4),
                 (2, 1, 1),
@@ -59,8 +57,8 @@ def test_get_all_possible_attacks_or_moves():
                 (5, 3, 2),
         ]}
 
-    assert set(preem.get_all_possible_moves(preem.PlayerState(world, 1))) == {
-        preem.Move(from_, to, count)
+    assert set(P.get_all_possible_moves(P.PlayerState(world, 1))) == {
+        P.Move(from_, to, count)
         for from_, to, count in [
                 (0, 2, 4),
                 (2, 0, 1),
@@ -70,8 +68,8 @@ def test_get_all_possible_attacks_or_moves():
 
 def test_deck():
     random.seed(642)
-    map_ = preem.Map.load_file('maps/tiny4.json')
-    deck = preem._Deck(map_, random)
+    map_ = P.Map.load('maps/tiny4.json')
+    deck = P._Deck(map_, random)
     stash = [deck.draw() for _ in range(20)]
     assert collections.Counter([c.symbol for c in stash]) == {0: 7, 1: 7, 2: 6}
     assert collections.Counter([c.territory for c in stash]) == {n: 5 for n in range(4)}
@@ -90,8 +88,8 @@ def test_deck():
 # Core data tests
 
 def test_map_world_state_game_repr():
-    map_ = preem.Map.load_file('maps/tiny3.json')
-    game = preem.Game.start(map_, [random_agent.Agent()] * 2)
+    map_ = P.Map.load('maps/tiny3.json')
+    game = P.Game.start(map_, [random_agent.Agent()] * 2)
 
     assert 'territories=3' in str(game.world.map)
     assert 'continents=1' in str(game.world.map)
@@ -116,8 +114,8 @@ def test_map_world_state_game_repr():
 # Core unit tests
 
 def test_placement_phase():
-    map_ = preem.Map.load_file('maps/tiny3.json')
-    game = preem.Game.start(map_, [random_agent.Agent(), random_agent.Agent()])
+    map_ = P.Map.load('maps/tiny3.json')
+    game = P.Game.start(map_, [random_agent.Agent(), random_agent.Agent()])
     placement_events = list(it.takewhile(lambda e: e.method == 'place', game))
     # game should now be paused before evaluating the first reinforce()
 
@@ -131,8 +129,8 @@ def test_placement_phase():
 
 def test_placement_phase_asymmetric():
     random.seed(500)
-    map_ = preem.Map.load_file('maps/tiny4.json')
-    game = preem.Game.start(map_, [random_agent.Agent(), random_agent.Agent(), random_agent.Agent()])
+    map_ = P.Map.load('maps/tiny4.json')
+    game = P.Game.start(map_, [random_agent.Agent(), random_agent.Agent(), random_agent.Agent()])
     placement_events = list(it.takewhile(lambda e: e.method == 'place', game))
     # game should now be paused before evaluating the first reinforce()
 
@@ -151,35 +149,35 @@ def test_placement_phase_asymmetric():
 
 
 def _make_world(map_, agents):
-    world = preem.World(map_, [str(a) for a in agents], isinstance(agents[-1], preem._NeutralAgent))
-    return world, [(agent, preem.PlayerState(world, n)) for n, agent in enumerate(agents)]
+    world = P.World(map_, [str(a) for a in agents], isinstance(agents[-1], P._NeutralAgent))
+    return world, [(agent, P.PlayerState(world, n)) for n, agent in enumerate(agents)]
 
 
 def test_placement_phase_error():
     random.seed(500)
-    map_ = preem.Map.load_file('maps/tiny3.json')
+    map_ = P.Map.load('maps/tiny3.json')
     bad_agent = um.Mock(__str__=um.Mock(return_value='BadMockAgent'))
     agents = [bad_agent, random_agent.Agent(), random_agent.Agent()]
 
     world, agents_and_states = _make_world(map_, agents)
     bad_agent.place = um.Mock(return_value=3)  # out-of-bounds placement
     with pytest.raises(ValueError) as e:
-        list(preem._placement_phase(world, agents_and_states, random))
+        list(P._placement_phase(world, agents_and_states, random))
     assert 'place' in str(e) and 'BadMockAgent' in str(e)
     assert '0..2' in str(e) and '3' in str(e)
 
     world, agents_and_states = _make_world(map_, agents)
     bad_agent.place = um.Mock(side_effect=lambda state: state.world.owners.index(1))  # enemy territory placement
     with pytest.raises(ValueError) as e:
-        list(preem._placement_phase(world, agents_and_states, random))
+        list(P._placement_phase(world, agents_and_states, random))
     assert 'place' in str(e) and 'enemy' in str(e) and 'BadMockAgent' in str(e)
     assert '1' in str(e)
 
 
 def test_placement_phase_too_many_players():
     random.seed(400)
-    map_ = preem.Map.load_file('maps/tiny3.json')
-    game = preem.Game.start(map_, [random_agent.Agent()] * 4)
+    map_ = P.Map.load('maps/tiny3.json')
+    game = P.Game.start(map_, [random_agent.Agent()] * 4)
     with pytest.raises(ValueError) as e:
         list(game)
     assert '4' in str(e)
@@ -187,25 +185,25 @@ def test_placement_phase_too_many_players():
 
 
 def test_reinforce():
-    map_ = preem.Map.load_file('maps/quad.json')
+    map_ = P.Map.load('maps/quad.json')
     tid = map_.territory_names.index
-    C = preem.Card
+    C = P.Card
     deck = um.Mock()
 
     # Set up the world
-    world = preem.World(map_, ['p0', 'p1', 'p2'], has_neutral=False)
+    world = P.World(map_, ['p0', 'p1', 'p2'], has_neutral=False)
     for i in range(map_.n_territories):
         world.armies[i] = 1
         world.owners[i] = 2
     world.owners[tid('A4')] = 0
     world.owners[tid('B4')] = 1
     agent_0 = um.Mock()
-    state_0 = preem.PlayerState(world, 0)
+    state_0 = P.PlayerState(world, 0)
 
     # 1. Minimum territory reinforcements, no continents, no sets
     agent_0.reinforce = um.Mock(return_value={tid('A4'): 3})
-    events = list(preem._reinforce(agent_0, state_0, deck))
-    assert events == [preem.Event(agent_0, state_0, 'reinforce', dict(count=3), {tid('A4'): 3})]
+    events = list(P._reinforce(agent_0, state_0, deck))
+    assert events == [P.Event(agent_0, state_0, 'reinforce', dict(count=3), {tid('A4'): 3})]
     assert world.armies[tid('A4')] == 1 + 3
     assert world.sets_redeemed == 0
 
@@ -216,9 +214,9 @@ def test_reinforce():
     world.n_cards[0] = len(cards)
     agent_0.redeem = um.Mock(return_value=cards_to_redeem.copy())
     agent_0.reinforce = um.Mock(return_value={tid('A4'): 7})  # 3 (territory) + 4 (set)
-    events = list(preem._reinforce(agent_0, state_0, deck))
-    assert events == [preem.Event(agent_0, state_0, 'redeem', {}, cards_to_redeem.copy()),
-                      preem.Event(agent_0, state_0, 'reinforce', dict(count=7), {tid('A4'): 7})]
+    events = list(P._reinforce(agent_0, state_0, deck))
+    assert events == [P.Event(agent_0, state_0, 'redeem', {}, cards_to_redeem.copy()),
+                      P.Event(agent_0, state_0, 'reinforce', dict(count=7), {tid('A4'): 7})]
     assert world.armies[tid('A4')] == 4 + 7
     assert world.sets_redeemed == 1
     assert world.n_cards[0] == 1
@@ -228,15 +226,15 @@ def test_reinforce():
     # 3. Multiple territory, multiple continents, declaring a set
     agent_2 = um.Mock()
     cards = [C(2, tid('A2')), C(2, tid('A3')), C(2, tid('A4'))]
-    state_2 = preem.PlayerState(world, 2, cards=cards)
+    state_2 = P.PlayerState(world, 2, cards=cards)
     world.n_cards[2] = len(state_2.cards)
     agent_2.redeem = um.Mock(return_value=cards.copy())
     # Need to make 17 reinforcements: 6 (=18/3, territory) + 6 (set) + 5 (=2+3, continents)
     reinforcements = {tid('A3'): 11, tid('B5'): 6}
     agent_2.reinforce = um.Mock(return_value=reinforcements)
-    events = list(preem._reinforce(agent_2, state_2, deck))
-    assert events == [preem.Event(agent_2, state_2, 'redeem', {}, cards.copy()),
-                      preem.Event(agent_2, state_2, 'reinforce', dict(count=17), reinforcements)]
+    events = list(P._reinforce(agent_2, state_2, deck))
+    assert events == [P.Event(agent_2, state_2, 'redeem', {}, cards.copy()),
+                      P.Event(agent_2, state_2, 'reinforce', dict(count=17), reinforcements)]
     assert world.armies[tid('A4')] == 11, 'matches set but not owned, so unchanged'
     assert world.armies[tid('A2')] == 3, 'bonus armies'
     assert world.armies[tid('A3')] == 1 + 2 + 11, 'bonus armies & reinforcements'
@@ -248,31 +246,31 @@ def test_reinforce():
 
 
 def test_reinforce_error():
-    map_ = preem.Map.load_file('maps/tiny3.json')
-    world = preem.World(map_, ['p0', 'p1', 'neutral'], has_neutral=True)
+    map_ = P.Map.load('maps/tiny3.json')
+    world = P.World(map_, ['p0', 'p1', 'neutral'], has_neutral=True)
     world.armies = [1, 1, 1]
     world.owners = [0, 0, 1]
 
     agent_0 = um.Mock(__str__=um.Mock(return_value='BadMockAgent'))
-    state_0 = preem.PlayerState(world, 0)
+    state_0 = P.PlayerState(world, 0)
 
     # redeem
-    C = preem.Card
+    C = P.Card
     state_0.cards = [C(2, 0), C(2, 1), C(1, 2)]
     agent_0.redeem = um.Mock(return_value=[C(2, 0), C(2, 1), C(2, 2)])  # card not owned
     with pytest.raises(ValueError) as e:
-        list(preem._reinforce(agent_0, state_0, um.Mock()))
+        list(P._reinforce(agent_0, state_0, um.Mock()))
     assert 'redeem' in str(e) and 'BadMockAgent' in str(e)
 
     agent_0.redeem = um.Mock(return_value=[C(2, 0), C(2, 1), C(1, 2)])  # not a matching set
     with pytest.raises(ValueError) as e:
-        list(preem._reinforce(agent_0, state_0, um.Mock()))
+        list(P._reinforce(agent_0, state_0, um.Mock()))
     assert 'redeem' in str(e) and 'BadMockAgent' in str(e)
 
     state_0.cards = [C(2, 0), C(2, 1), C(1, 2), C(1, 0), C(0, 1), C(0, 2)]
     agent_0.redeem = um.Mock(return_value=None)  # fail to redeem with 6 cards
     with pytest.raises(ValueError) as e:
-        list(preem._reinforce(agent_0, state_0, um.Mock()))
+        list(P._reinforce(agent_0, state_0, um.Mock()))
     assert 'redeem' in str(e) and 'BadMockAgent' in str(e)
     assert '6' in str(e) and '5' in str(e)
 
@@ -282,42 +280,48 @@ def test_reinforce_error():
 
     agent_0.reinforce = um.Mock(return_value={2: 3})  # enemy territory
     with pytest.raises(ValueError) as e:
-        list(preem._reinforce(agent_0, state_0, um.Mock()))
+        list(P._reinforce(agent_0, state_0, um.Mock()))
     assert 'reinforce' in str(e) and 'BadMockAgent' in str(e) and '2' in str(e)
 
     agent_0.reinforce = um.Mock(return_value={0: 2, 1: 2})  # selected the wrong number of reinforcements
     with pytest.raises(ValueError) as e:
-        list(preem._reinforce(agent_0, state_0, um.Mock()))
+        list(P._reinforce(agent_0, state_0, um.Mock()))
     assert 'reinforce' in str(e) and 'BadMockAgent' in str(e)
     assert'4' in str(e) and '3' in str(e)
 
+    agent_0.reinforce = um.Mock(return_value={0: 5, 1: -2})  # negative number of reinforcements
+    with pytest.raises(ValueError) as e:
+        list(P._reinforce(agent_0, state_0, um.Mock()))
+    assert 'reinforce' in str(e) and 'BadMockAgent' in str(e)
+    assert'-2' in str(e)
+
 
 def test_attack_and_move():
-    map_ = preem.Map.load_file('maps/tiny3.json')
-    world = preem.World(map_, ['p0', 'p1', 'neutral'], has_neutral=True)
+    map_ = P.Map.load('maps/tiny3.json')
+    world = P.World(map_, ['p0', 'p1', 'neutral'], has_neutral=True)
     world.owners = [0, 1, 2]
     world.armies = [5, 2, 1]
 
     agents = [um.Mock(), um.Mock(), None]
-    states = [preem.PlayerState(world, 0),
-              preem.PlayerState(world, 1, cards=[preem.Card(2, 2)]),
-              preem.PlayerState(world, 2)]
+    states = [P.PlayerState(world, 0),
+              P.PlayerState(world, 1, cards=[P.Card(2, 2)]),
+              P.PlayerState(world, 2)]
     agents_and_states = list(zip(agents, states))
     deck = um.Mock()
     rand = um.Mock()
 
     # 1. Don't take any action - no card earnt
     agents[0].act = um.Mock(return_value=None)
-    events = list(preem._attack_and_move(agents[0], states[0], deck, agents_and_states, rand))
-    assert events == [preem.Event(agents[0], states[0], 'act', dict(earned_card=False), None)]
+    events = list(P._attack_and_move(agents[0], states[0], deck, agents_and_states, rand))
+    assert events == [P.Event(agents[0], states[0], 'act', dict(earned_card=False), None)]
     assert len(states[0].cards) == 0, 'no cards earnt'
 
     # 2. Attack (knock out Neutral) then Move
-    agents[0].act = um.Mock(side_effect=[preem.Attack(0, 2, 3), preem.Move(2, 0, 1)])
+    agents[0].act = um.Mock(side_effect=[P.Attack(0, 2, 3), P.Move(2, 0, 1)])
     rand.choices = um.Mock(return_value=[(0, 1)])
-    events = list(preem._attack_and_move(agents[0], states[0], deck, agents_and_states, rand))
-    assert events == [preem.Event(agents[0], states[0], 'act', dict(earned_card=False), preem.Attack(0, 2, 3)),
-                      preem.Event(agents[0], states[0], 'act', dict(earned_card=True), preem.Move(2, 0, 1))]
+    events = list(P._attack_and_move(agents[0], states[0], deck, agents_and_states, rand))
+    assert events == [P.Event(agents[0], states[0], 'act', dict(earned_card=False), P.Attack(0, 2, 3)),
+                      P.Event(agents[0], states[0], 'act', dict(earned_card=True), P.Move(2, 0, 1))]
     assert len(states[0].cards) == 1, 'earnt a card'
     assert world.owners == [0, 1, 0]
     assert world.armies == [3, 2, 2]
@@ -327,10 +331,10 @@ def test_attack_and_move():
     np.testing.assert_almost_equal(probabilities, [855/1296, 441/1296])
 
     # 3. Attack (knock out other player, claim their cards), win
-    agents[0].act = um.Mock(return_value=preem.Attack(0, 1, 2))
+    agents[0].act = um.Mock(return_value=P.Attack(0, 1, 2))
     rand.choices = um.Mock(return_value=[(0, 2)])
-    with pytest.raises(preem._GameOverException):
-        list(preem._attack_and_move(agents[0], states[0], deck, agents_and_states, rand))
+    with pytest.raises(P._GameOverException):
+        list(P._attack_and_move(agents[0], states[0], deck, agents_and_states, rand))
     assert world.owners == [0, 0, 0]
     assert world.armies == [1, 2, 2]
     # dice rolls
@@ -339,41 +343,41 @@ def test_attack_and_move():
     np.testing.assert_almost_equal(probabilities, [295/1296, 420/1296, 581/1296])
     # cards
     assert len(states[0].cards) == 2, 'conquered a card (haven\'t earnt one as the game ended too soon)'
-    assert preem.Card(2, 2) in states[0].cards
+    assert P.Card(2, 2) in states[0].cards
     assert len(states[1].cards) == 0, 'conquered = lost card'
     assert world.n_cards == [2, 0, 0]
 
 
 def test_attack_and_move_error():
-    map_ = preem.Map.load_file('maps/tiny4.json')
+    map_ = P.Map.load('maps/tiny4.json')
     # disconnect (0, 2), so that there can be a "not connected" error
     map_.edges[0].remove(2)
     map_.edges[2].remove(0)
-    world = preem.World(map_, ['p0', 'p1', 'neutral'], has_neutral=True)
+    world = P.World(map_, ['p0', 'p1', 'neutral'], has_neutral=True)
     world.armies = [5, 5, 3, 5]
     world.owners = [0, 0, 1, 1]
 
     agents = [um.Mock(), um.Mock(), None]
-    states = [preem.PlayerState(world, 0), preem.PlayerState(world, 1), preem.PlayerState(world, 2)]
+    states = [P.PlayerState(world, 0), P.PlayerState(world, 1), P.PlayerState(world, 2)]
     agents_and_states = list(zip(agents, states))
     rand = um.Mock()
 
-    for action in [preem.Attack(0, 1, 2),  # attacking from enemy
-                   preem.Attack(2, 3, 2),  # attacking to friendly
-                   preem.Attack(2, 1, 3),  # attacking with too many units
-                   preem.Attack(2, 0, 2),  # attacking to disconnected territory
-                   preem.Move(2, 1, 2),    # moving to enemy
-                   preem.Move(1, 2, 2),    # moving from enemy
-                   preem.Move(2, 3, 3)]:   # moving too many units
+    for action in [P.Attack(0, 1, 2),  # attacking from enemy
+                   P.Attack(2, 3, 2),  # attacking to friendly
+                   P.Attack(2, 1, 3),  # attacking with too many units
+                   P.Attack(2, 0, 2),  # attacking to disconnected territory
+                   P.Move(2, 1, 2),    # moving to enemy
+                   P.Move(1, 2, 2),    # moving from enemy
+                   P.Move(2, 3, 3)]:   # moving too many units
         agents[1].act = um.Mock(return_value=action)
         with pytest.raises(ValueError) as e:
-            list(preem._attack_and_move(agents[1], states[1], um.Mock(), agents_and_states, rand))
+            list(P._attack_and_move(agents[1], states[1], um.Mock(), agents_and_states, rand))
         assert str(action) in str(e)
 
     # sanity check that a correct attack & move are indeed possible
-    agents[1].act = um.Mock(side_effect=[preem.Attack(2, 1, 2), preem.Move(3, 2, 4)])
+    agents[1].act = um.Mock(side_effect=[P.Attack(2, 1, 2), P.Move(3, 2, 4)])
     rand.choices = um.Mock(return_value=[(2, 0)])  # attacker loses
-    assert len(list(preem._attack_and_move(agents[1], states[1], um.Mock(), agents_and_states, rand))) == 2
+    assert len(list(P._attack_and_move(agents[1], states[1], um.Mock(), agents_and_states, rand))) == 2
     assert len(states[1].cards) == 0, "didn't earn a card"
     assert world.armies == [5, 5, 5, 1]
     assert world.owners == [0, 0, 1, 1]
@@ -400,7 +404,7 @@ class EverythingWrongAgent:
         self._ticker += 1
         if self._ticker % 2 == 0:
             return None
-        return [preem.Card(0, 'not'), preem.Card(0, 'my'), preem.Card(0, 'cards')]
+        return [P.Card(0, 'not'), P.Card(0, 'my'), P.Card(0, 'cards')]
 
     def reinforce(self, state, count):
         self._ticker += 1
@@ -422,7 +426,7 @@ class EverythingWrongAgent:
                                  for to in state.map.edges[from_]
                                  if state.world.owners[to] == state.player_index
                                  and 1 < state.world.armies[from_])
-                return preem.Attack(from_, to, 1)
+                return P.Attack(from_, to, 1)
             if self._ticker % 4 == 1:
                 # too many units attack
                 from_, to = next((from_, to)
@@ -430,7 +434,7 @@ class EverythingWrongAgent:
                                  for to in state.map.edges[from_]
                                  if state.world.owners[to] != state.player_index
                                  and 1 < state.world.armies[from_])
-                return preem.Attack(from_, to, state.world.armies[from_])
+                return P.Attack(from_, to, state.world.armies[from_])
             if self._ticker % 4 == 2:
                 # disconnected attack
                 from_, to = next((from_, to)
@@ -439,24 +443,24 @@ class EverythingWrongAgent:
                                  if to not in state.map.edges[from_]
                                  and state.world.owners[to] != state.player_index
                                  and 1 < state.world.armies[from_])
-                return preem.Attack(from_, to, 1)
+                return P.Attack(from_, to, 1)
             # move to enemy
             from_, to = next((from_, to)
                              for from_ in state.my_territories
                              for to in state.map.edges[from_]
                              if state.world.owners[to] != state.player_index
                              and 1 < state.world.armies[from_])
-            return preem.Attack(from_, to, 1)
+            return P.Attack(from_, to, 1)
         except StopIteration:
             return None
 
 
 def test_play_game_fallback_agent():
     random.seed(250)
-    map_ = preem.Map.load_file('maps/tiny4.json')
+    map_ = P.Map.load('maps/tiny4.json')
     with pytest.raises(ValueError):
-        preem.Game.play(map_, [EverythingWrongAgent(), random_agent.Agent()])
-    preem.Game.play(map_, [preem.FallbackAgent(EverythingWrongAgent()), random_agent.Agent()])
+        P.Game.play(map_, [EverythingWrongAgent(), random_agent.Agent()])
+    P.Game.play(map_, [P.FallbackAgent(EverythingWrongAgent()), random_agent.Agent()])
 
 
 class RedeemWrongAgent(random_agent.Agent):
@@ -470,10 +474,36 @@ class RedeemWrongAgent(random_agent.Agent):
 
 def test_play_game_fallback_agent_redeem_only():
     random.seed(250)
-    map_ = preem.Map.load_file('maps/quad.json')
+    map_ = P.Map.load('maps/quad.json')
     with pytest.raises(ValueError):
-        preem.Game.play(map_, [RedeemWrongAgent(), random_agent.Agent()])
-    preem.Game.play(map_, [preem.FallbackAgent(RedeemWrongAgent()), random_agent.Agent()])
+        P.Game.play(map_, [RedeemWrongAgent(), random_agent.Agent()])
+    P.Game.play(map_, [P.FallbackAgent(RedeemWrongAgent()), random_agent.Agent()])
+
+
+def test_next_event():
+    random.seed(250)
+    # We're going to assume that the game goes on long enough for a few queries not to reach the
+    # end of the game
+    map_ = P.Map.load('maps/quad.json')
+    agent0, agent1 = random_agent.Agent(), random_agent.Agent()
+    game = P.Game.start(map_, [agent0, agent1])
+    assert next(game).method == 'place'
+
+    assert game.next_event(method='reinforce').method == 'reinforce'
+    nevents = len(game.world.event_log)
+    assert game.next_event(method='act').method == 'act'
+    assert len(game.world.event_log) == nevents + 1, 'act should immediately follow reinforce'
+
+    assert game.next_event(player_index=1).agent is agent1
+    for _ in range(2):
+        # do this twice to check that multiple conditions combine with AND, because agent0.reinforce
+        # would be separated by both agent1.reinforce and agent0.act
+        event = game.next_event(agent=agent0, method='reinforce')
+        assert event.state.player_index == 0
+        assert event.method == 'reinforce'
+
+    with pytest.raises(StopIteration):
+        game.next_event(predicate=lambda e: False)
 
 
 # Functional tests
@@ -490,7 +520,7 @@ MAPS = [
 
 @pytest.mark.parametrize('map_name', MAPS)
 def test_maps(map_name):
-    map_ = preem.Map.load_file('maps/{}.json'.format(map_name))
+    map_ = P.Map.load('maps/{}.json'.format(map_name))
     assert map_.name == map_name
     assert map_name in str(map_)
 
@@ -526,7 +556,7 @@ def test_maps(map_name):
     assert nx.algorithms.is_connected(g), 'can run NetworkX algorithms'
 
 
-class ConsistencyCheckingAgent(preem.Agent):
+class ConsistencyCheckingAgent(P.Agent):
     """Wrap preem.Agent to check consistency of the world every time it is called."""
     def __init__(self, agent):
         self.agent = agent
@@ -581,10 +611,10 @@ class ConsistencyCheckingAgent(preem.Agent):
 
 def test_play_game():
     random.seed(345)
-    map_ = preem.Map.load_file('maps/tiny4.json')
+    map_ = P.Map.load('maps/tiny4.json')
     agents = [ConsistencyCheckingAgent(random_agent.Agent()),
               ConsistencyCheckingAgent(random_agent.Agent())]
-    game = preem.Game.start(map_, agents)
+    game = P.Game.start(map_, agents)
     assert game.map is map_
     for n, event in enumerate(game):
         # log should already contain this latest event
@@ -598,12 +628,12 @@ def test_play_game():
 
 def test_watch_game():
     random.seed(987)
-    map_ = preem.Map.load_file('maps/tiny3.json')
+    map_ = P.Map.load('maps/tiny3.json')
     agents = [ConsistencyCheckingAgent(random_agent.Agent()),
               ConsistencyCheckingAgent(random_agent.Agent())]
     name = 'test_watch_game_tmp.mp4'
     try:
-        preem.Game.watch(map_, agents, name)
+        P.Game.watch(map_, agents, name)
         assert os.path.isfile(name)
     finally:
         if os.path.exists(name):
@@ -614,12 +644,12 @@ def test_watch_game():
 def test_fuzz(map_name):
     SMALL_MAPS = {'mini', 'tiny3', 'tiny4'}
     random.seed(100)
-    map_ = preem.Map.load_file('maps/{}.json'.format(map_name))
+    map_ = P.Map.load('maps/{}.json'.format(map_name))
     rand_agent = ConsistencyCheckingAgent(random_agent.Agent())
     for n_players in range(2, map_.max_players):
         agents = [rand_agent] * n_players
         ntrials = 1000 if map_name in SMALL_MAPS else 10
-        results = [preem.Game.play(map_, agents) for _ in range(ntrials)]
+        results = [P.Game.play(map_, agents) for _ in range(ntrials)]
         for result in results:
             assert set(result.winners) | set(result.eliminated) == set(range(n_players))
             assert not (set(result.winners) & set(result.eliminated))

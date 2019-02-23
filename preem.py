@@ -1,4 +1,6 @@
-"""Pre-eminence is a game in which autonomous agents attempt world domination in turn based strategy.
+"""Preeminence is a game in which autonomous agents attempt world domination in turn based strategy.
+
+![Example classic map](eg_classic.svg)
 
 **Get started now with our friendly [tutorial](tutorial.html).**
 
@@ -154,8 +156,8 @@ class _View:
                       poll_interval=0.01, dpi=72, fps=4):
         if frame_time is None:
             frame_time = cls.simple_frame_time
-        dot_path = '{dir}/{n:03d}.dot'
-        render_command = 'dot -Kneato -Tpng -Gdpi={dpi} -o{dir}/{n:03d}.png {dir}/{n:03d}.dot'
+        dot_path = '{dir}/{n:04d}.dot'
+        render_command = 'dot -Kneato -Tpng -Gdpi={dpi} -o{dir}/{n:04d}.png {dir}/{n:04d}.dot'
         with tempfile.TemporaryDirectory() as dir:
             with open(os.path.join(dir, 'playlist.txt'), 'w') as playlist, \
                  cls._Renderer(max_processes, poll_interval) as render:
@@ -167,14 +169,14 @@ class _View:
                         g = nx.nx_agraph.to_agraph(cls.event_to_graph(event))
                         g.write(path=dot_path.format(dir=dir, n=frame_count))
                         render(render_command.format(dpi=dpi, dir=dir, n=frame_count))
-                        playlist.write('file {n:03d}.png\nduration {time}\n'.format(n=frame_count, time=ftime))
+                        playlist.write('file {n:04d}.png\nduration {time}\n'.format(n=frame_count, time=ftime))
                         frame_count += 1
                 # final "game over" frame
                 g = nx.nx_agraph.to_agraph(cls.world_to_graph(
                     game.world, player_index=game.result.outright_winner()))
                 g.write(path=dot_path.format(dir=dir, n=frame_count))
                 render(render_command.format(dpi=dpi, dir=dir, n=frame_count))
-                playlist.write('file {n:03d}.png\nduration {time}\nfile {n:03d}.png\n'.format(
+                playlist.write('file {n:04d}.png\nduration {time}\nfile {n:04d}.png\n'.format(
                     n=frame_count, time=frame_time(game.world)))
             subprocess.check_call('ffmpeg -y -f concat -i {playlist} -r {fps} {out}'.format(
                 playlist=playlist.name, out=out_path, fps=fps), shell=True)
@@ -241,7 +243,7 @@ class Map:
         return max(self.initial_armies.keys())
 
     @classmethod
-    def load(cls, f):
+    def load_file(cls, f):
         """Load from a file object, which should contain a JSON world spec."""
         d = json.load(f)
         continent_names, continent_values = zip(*d['continents'])
@@ -259,10 +261,15 @@ class Map:
                    layout=layout)
 
     @classmethod
-    def load_file(cls, path):
-        """Load from a local path."""
+    def load(cls, path):
+        """Load a map from a local path.
+
+        `path` -- `str` -- local file path (e.g. `"maps/classic.json"`)
+
+        returns -- `Map`
+        """
         with open(path, 'r') as f:
-            return cls.load(f)
+            return cls.load_file(f)
 
 
 class World:
@@ -314,6 +321,10 @@ class World:
     def territories_belonging_to(self, owner):
         """Get a list of territory IDs belonging to `owner`."""
         return [idx for idx, iowner in enumerate(self.owners) if iowner == owner]
+
+    @property
+    def next_set_value(self):
+        return value_of_set(self.sets_redeemed)
 
 
 Card = collections.namedtuple('Card', ('symbol', 'territory'))
@@ -372,9 +383,10 @@ class PlayerState:
 
 
 def is_matching_set(cards):
-    """Determine if the set of 3 `Card`s defines a valid matching set.
+    """Determine if the set of 3 `Card`s defines a valid matching set (that can be redeemed).
 
-    A set is matching if the cards are all the same or all different.
+    A set is matching if the symbols on the 3 cards are either all the same or all different.
+    (e.g. `[1, 1, 1]` matches, `[1, 0, 1]` does not, but `[0, 1, 2]` is a matching set.
 
     `cards` -- `[Card]` -- cards to check
 
@@ -385,7 +397,10 @@ def is_matching_set(cards):
 
 
 def get_matching_sets(cards):
-    """List all allowed matching sets from your `Card`s.
+    """List all allowed matching sets (that can be redeemed) from your `Card`s.
+
+    A set is matching if the symbols on the 3 cards are either all the same or all different.
+    (e.g. `[1, 1, 1]` matches, `[1, 0, 1]` does not, but `[0, 1, 2]` is a matching set.
 
     `cards` -- `[Card]` -- cards available to redeem
 
@@ -652,6 +667,9 @@ class _ValidatingAgent(Agent):
 
     def reinforce(self, state, count):
         destinations = self.agent.reinforce(state, count)
+        if any(n < 0 for n in destinations.values()):
+            raise self._error('tried to deploy a negative number of reinforcements ({})',
+                              [n for n in destinations.values() if n < 0])
         if sum(destinations.values()) != count:
             raise self._error('deployed an incorrect number of reinforcements ({} of {})',
                               sum(destinations.values()), count)
@@ -827,7 +845,7 @@ def _reinforce(agent, state, deck):
                     state.world.armies[card.territory] += SET_MATCHING_TERRITORY_BONUS
             deck.redeem(set_)
             state._remove_cards(set_)
-            general_reinforcements += value_of_set(state.world.sets_redeemed)
+            general_reinforcements += state.world.next_set_value
             state.world.sets_redeemed += 1
 
     # Apply reinforcements
@@ -921,7 +939,7 @@ GameResult.outright_winner = _outright_winner  # NOQA
 
 
 class Game:
-    """Play and optionally watch a game of Pre-eminence.
+    """Play and optionally watch a game of Preeminence.
 
     To _play_ a game & get only the final outcome see `Game.play()`.
 
@@ -963,8 +981,35 @@ class Game:
 
         Note that the `Event` object contains data that will be modified by the game the when `next()` is
         called again.
+
+        returns -- `Event` -- next event from the game (mostly the same event can be found in
+                              `Game.world.event_log[-1]`).
         """
         return next(self._iter)
+
+    def next_event(self, player_index=None, method=None, agent=None, predicate=None):
+        """Advance the game to the next `Event` which matches various filters.
+
+        `player_index` -- `int` -- an event generated from this player
+
+        `method` -- `str` -- the name of the `Agent` method that generated this event
+
+        `agent` -- `Agent` -- the agent instance that generated the event (an alternative to
+                              using `player_index`
+
+        `predicate` -- `callable(Event)` -- an arbitrary predicate that returns `True` to
+                                            select a matching event
+
+        returns -- `Event` -- next matching event from the game
+
+        throws -- `StopIteration` -- a matching event wasn't found before the end of the game
+        """
+        def _matches(event):
+            return ((player_index is None or event.state.player_index == player_index)
+                    and (method is None or event.method == method)
+                    and (agent is None or event.agent is agent)
+                    and (predicate is None or predicate(event)))
+        return next(filter(_matches, self))
 
     @property
     def result(self):
@@ -977,7 +1022,7 @@ class Game:
 
     @classmethod
     def start(cls, map, agents, rand=random):
-        """Start a game of Pre-eminence.
+        """Start a game of Preeminence.
 
         This includes some handling for 1v1 matches - to introduce a _neutral_ agent, which places
         armies on territories, but will never attack either player. Therefore the returned game may contain
@@ -997,7 +1042,7 @@ class Game:
 
     @classmethod
     def watch(cls, map, agents, video_path, rand=random, **video_args):
-        """Watch a full game of Pre-eminence, rendering to and returning a video.
+        """Watch a full game of Preeminence, rendering to and returning a video.
 
         `map` -- `Map`
 
@@ -1018,7 +1063,7 @@ class Game:
 
     @classmethod
     def play(cls, map, agents, rand=random):
-        """Play a full game of Pre-eminence (without watching what goes on), and return the `GameResult`.
+        """Play a full game of Preeminence (without watching what goes on), and return the `GameResult`.
 
         `map` -- `Map`
 
