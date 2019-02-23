@@ -21,7 +21,7 @@
 </header>
 <section id="section-intro">
 <p>Preeminence is a game in which autonomous agents attempt world domination in turn based strategy.</p>
-<p><img alt="Example classic map" src="eg_classic.svg"></p>
+<p><img alt="Example classic map" src="img/eg_classic.svg"></p>
 <p><strong>Get started now with our friendly <a href="tutorial.html">tutorial</a>.</strong></p>
 <p>Keep reading for tips on how to do useful things when developing your agent, or see the class reference
 below for details (we'd suggest starting with <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a>, <a title="preem.Map" href="#preem.Map"><code>Map</code></a>, <a title="preem.World" href="#preem.World"><code>World</code></a>, <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a> and <a title="preem.Game" href="#preem.Game"><code>Game</code></a>).`</p>
@@ -31,7 +31,7 @@ below for details (we'd suggest starting with <a title="preem.Agent" href="#pree
 <summary>Source code</summary>
 <pre><code class="python">&#34;&#34;&#34;Preeminence is a game in which autonomous agents attempt world domination in turn based strategy.
 
-![Example classic map](eg_classic.svg)
+![Example classic map](img/eg_classic.svg)
 
 **Get started now with our friendly [tutorial](tutorial.html).**
 
@@ -329,8 +329,9 @@ class World:
                       game, in order of elimination (does not include neutral)&#34;&#34;&#34;
         self.event_log = []
         &#34;&#34;&#34;`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &amp;
-        actions of every other agent. Note that in this log the `agent` has been replaced with its&#39;
-        `repr`, and the `state` has been set to `None` (to prevent private information leakage).&#34;&#34;&#34;
+        actions of every other agent. Note that in this log the `agent` has been replaced with
+        `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
+        private information leakage).&#34;&#34;&#34;
 
     def __repr__(self):
         return &#39;World[map={}, players={}]&#39;.format(self.map, self.n_players)
@@ -339,7 +340,8 @@ class World:
         return _View.to_svg(_View.world_to_graph(self))
 
     def _add_event(self, event):
-        self.event_log.append(event._replace(agent=repr(event.agent), state=None))
+        self.event_log.append(event._replace(agent=repr(event.agent),
+                                             state=event.state.player_index))
         return event
 
     @property
@@ -633,7 +635,7 @@ class Agent:
     To implement an Agent, you must subclass `Agent`, implementing the abstract methods `Agent.place`,
     `Agent.redeem`, `Agent.reinforce` and `Agent.act`. These methods are called during a game of Preeminence
     in the following pattern:
-    ![Agent method flow](agent_flow.svg)
+    ![Agent method flow](img/agent_flow.svg)
 
      - The game sets up the map, assigns starting territories randomly to each player.
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
@@ -1040,7 +1042,7 @@ class GameResult:
     def __repr__(self):
         return &#39;GameResult(winners={{{winners}}}, eliminated=[{eliminated}])&#39;.format(
             winners=&#39;, &#39;.join(self._name(self.player_names, winner) for winner in self.winners),
-            eliminated=&#39;, &#39;.join(self._name(self.player_names, eliminated) for eliminated in self.winners),
+            eliminated=&#39;, &#39;.join(self._name(self.player_names, eliminated) for eliminated in self.eliminated),
         )
 
     @property
@@ -1478,7 +1480,7 @@ e.g. if <code>Move(2, 5, count=4)</code> is returned, then trivially
 <p>To implement an Agent, you must subclass <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a>, implementing the abstract methods <a title="preem.Agent.place" href="#preem.Agent.place"><code>Agent.place()</code></a>,
 <a title="preem.Agent.redeem" href="#preem.Agent.redeem"><code>Agent.redeem()</code></a>, <a title="preem.Agent.reinforce" href="#preem.Agent.reinforce"><code>Agent.reinforce()</code></a> and <a title="preem.Agent.act" href="#preem.Agent.act"><code>Agent.act()</code></a>. These methods are called during a game of Preeminence
 in the following pattern:
-<img alt="Agent method flow" src="agent_flow.svg"></p>
+<img alt="Agent method flow" src="img/agent_flow.svg"></p>
 <ul>
 <li>The game sets up the map, assigns starting territories randomly to each player.</li>
 <li>Game calls <code>place</code> repeatedly (for each player in turn) to place a single army on an owned territory,
@@ -1500,7 +1502,7 @@ until enough initial armies have been placed.</li>
     To implement an Agent, you must subclass `Agent`, implementing the abstract methods `Agent.place`,
     `Agent.redeem`, `Agent.reinforce` and `Agent.act`. These methods are called during a game of Preeminence
     in the following pattern:
-    ![Agent method flow](agent_flow.svg)
+    ![Agent method flow](img/agent_flow.svg)
 
      - The game sets up the map, assigns starting territories randomly to each player.
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
@@ -2390,7 +2392,7 @@ select a matching event</p>
     def __repr__(self):
         return &#39;GameResult(winners={{{winners}}}, eliminated=[{eliminated}])&#39;.format(
             winners=&#39;, &#39;.join(self._name(self.player_names, winner) for winner in self.winners),
-            eliminated=&#39;, &#39;.join(self._name(self.player_names, eliminated) for eliminated in self.winners),
+            eliminated=&#39;, &#39;.join(self._name(self.player_names, eliminated) for eliminated in self.eliminated),
         )
 
     @property
@@ -3114,8 +3116,9 @@ See help(type(self)) for accurate signature.</p></section>
                       game, in order of elimination (does not include neutral)&#34;&#34;&#34;
         self.event_log = []
         &#34;&#34;&#34;`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &amp;
-        actions of every other agent. Note that in this log the `agent` has been replaced with its&#39;
-        `repr`, and the `state` has been set to `None` (to prevent private information leakage).&#34;&#34;&#34;
+        actions of every other agent. Note that in this log the `agent` has been replaced with
+        `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
+        private information leakage).&#34;&#34;&#34;
 
     def __repr__(self):
         return &#39;World[map={}, players={}]&#39;.format(self.map, self.n_players)
@@ -3124,7 +3127,8 @@ See help(type(self)) for accurate signature.</p></section>
         return _View.to_svg(_View.world_to_graph(self))
 
     def _add_event(self, event):
-        self.event_log.append(event._replace(agent=repr(event.agent), state=None))
+        self.event_log.append(event._replace(agent=repr(event.agent),
+                                             state=event.state.player_index))
         return event
 
     @property
@@ -3171,8 +3175,9 @@ game, in order of elimination (does not include neutral)</p></section>
 <dt id="preem.World.event_log"><code class="name">var <span class="ident">event_log</span></code></dt>
 <dd>
 <section class="desc"><p><code>[Event]</code> &ndash; list of <a title="preem.Event" href="#preem.Event"><code>Event</code></a>s that have been generated so far - i.e. the responses &amp;
-actions of every other agent. Note that in this log the <code>agent</code> has been replaced with its'
-<code>repr</code>, and the <code>state</code> has been set to <code>None</code> (to prevent private information leakage).</p></section>
+actions of every other agent. Note that in this log the <code>agent</code> has been replaced with
+<code>repr(agent)</code>, and the <code>state</code> has been replaced with <code>state.player_index</code> (to prevent
+private information leakage).</p></section>
 </dd>
 <dt id="preem.World.has_neutral"><code class="name">var <span class="ident">has_neutral</span></code></dt>
 <dd>
@@ -3267,8 +3272,9 @@ See help(type(self)) for accurate signature.</p></section>
                   game, in order of elimination (does not include neutral)&#34;&#34;&#34;
     self.event_log = []
     &#34;&#34;&#34;`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &amp;
-    actions of every other agent. Note that in this log the `agent` has been replaced with its&#39;
-    `repr`, and the `state` has been set to `None` (to prevent private information leakage).&#34;&#34;&#34;</code></pre>
+    actions of every other agent. Note that in this log the `agent` has been replaced with
+    `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
+    private information leakage).&#34;&#34;&#34;</code></pre>
 </details>
 </dd>
 <dt id="preem.World.count_territories"><code class="name flex">

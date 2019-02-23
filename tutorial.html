@@ -11787,15 +11787,15 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="0.-Setting-up-Preeminence">0. Setting up Preeminence<a class="anchor-link" href="#0.-Setting-up-Preeminence">&#182;</a></h2><p>We'll use Preeminence through a web server (called <em>JupyterLab Notebooks</em>) that will let you edit, run &amp; visualise all in one place. You can run this server in Docker to keep everything tidy &amp; predictable. To get started:</p>
+<h2 id="0.-Setting-up-Preeminence">0. Setting up Preeminence<a class="anchor-link" href="#0.-Setting-up-Preeminence">&#182;</a></h2><p>We'll use Preeminence through a web server (called <em>Jupyter Notebooks</em>) that will let you edit, run &amp; visualise all in one place. You can run this server in Docker to keep everything tidy &amp; predictable. To get started:</p>
 <ul>
 <li>Install <a href="https://docs.docker.com/install/">Docker CE</a></li>
 <li>Run: <code>$ git clone https://github.com/DouglasOrr/Preeminence.git</code><ul>
-<li><em>clones <a href="https://github.com/DouglasOrr/Preeminence">Preeminence</a></em></li>
+<li><em>(clones <a href="https://github.com/DouglasOrr/Preeminence">Preeminence</a>)</em></li>
 </ul>
 </li>
 <li>Run: <code>$ ./run_notebook.sh</code><ul>
-<li><em>starts a notebook server</em></li>
+<li><em>(starts a notebook server)</em></li>
 <li>open the URL that is shown</li>
 </ul>
 </li>
@@ -11828,7 +11828,7 @@ div#notebook {
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Hi! I&#39;m up-to-date as of: 2019-02-23 12:52:53.408839
+<pre>Hi! I&#39;m up-to-date as of: 2019-02-23 15:48:29.016141
 </pre>
 </div>
 </div>
@@ -11841,21 +11841,13 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="1.-Creating-an-agent">1. Creating an agent<a class="anchor-link" href="#1.-Creating-an-agent">&#182;</a></h2>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Now to the heart of the matter - let's create an Agent capable of playing a game! Your agent must inherit from <code>preem.Agent</code> (from now on we'll use <code>import preem as P</code> to make this <code>P.Agent</code>), and override 4 required methods. These make decisions about <strong>army placement</strong> (<code>place</code>, <code>reinforce</code>), strategic use of <strong>bonus armies from redeeming cards</strong> (<code>redeem</code>) and <strong>army movement and attacking</strong> (<code>act</code>).</p>
+<h2 id="Creating-an-agent">Creating an agent<a class="anchor-link" href="#Creating-an-agent">&#182;</a></h2><p>Now to the heart of the matter - let's create an Agent capable of playing a game! Your agent must inherit from <code>preem.Agent</code> (from now on we'll use <code>import preem as P</code> to make this <code>P.Agent</code>), and override 4 required methods. These make decisions about <strong>army placement</strong> (<code>place</code>, <code>reinforce</code>), strategic use of <strong>bonus armies from redeeming cards</strong> (<code>redeem</code>) and <strong>army movement and attacking</strong> (<code>act</code>).</p>
 <p>Each method is called in a preditable order during a game:</p>
 <p><img src="https://douglasorr.github.io/Preeminence/img/agent_flow.svg" alt="Agent method flow"></p>
 <ul>
-<li>The game sets up the map, assigns starting territories randomly to each player.</li>
+<li>First, the game sets up the map, assigns starting territories randomly to each player (the agent isn't involved yet).</li>
 <li>Game calls <code>place</code> repeatedly (for each player in turn) to place a single army on an owned territory, until enough initial armies have been placed.</li>
-<li>For each turn, game:<ul>
+<li>For each player's turn, game:<ul>
 <li>calls <code>redeem</code> to decide which, if any, cards should be declared for bonus armies,</li>
 <li>calls <code>reinforce</code> to place multiple armies on one or more owned territories,</li>
 <li>calls <code>act</code> repeatedly, until it returns a turn-ending action (such as a move).</li>
@@ -11907,17 +11899,13 @@ div#notebook {
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>Phew! That's quite a mouthful, so let's break it down, bit by bit.</p>
-
-<pre><code>class RandomAgent(P.Agent):
-
-</code></pre>
-<p>Hopefully no surprises here! (See also <a href="index.html#preem.Agent">Agent docs</a>.) We'll proceed method-by-method...</p>
-<h3 id="place"><code>place</code><a class="anchor-link" href="#place">&#182;</a></h3>
-<pre><code>def place(self, state):
-    return random.choice(state.my_territories)
-
-</code></pre>
-<p><strong><code>place(state)</code></strong> is called repeatedly at the beginning of the game to choose which of a player's randomly assigned territories to reinforce with the initial allocation of armies. Like all <code>Agent</code> methods, it accepts a <code>state</code> object (see <a href="index.html#preem.PlayerState">PlayerState docs</a>), which is your agent's conduit to all info about the current state of the game. Since it's so important, let's have a look at <code>state</code>. The best way to do this is to play a game up to the point our agent has just returned from <code>place</code>:</p>
+<div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">RandomAgent</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Agent</span><span class="p">):</span>
+</pre></div>
+<p>Hopefully no surprises here! (See also <a href="https://douglasorr.github.io/Preeminence/#preem.Agent">Agent docs</a>.) But for now we'll proceed method-by-method...</p>
+<h3 id="place"><code>place</code><a class="anchor-link" href="#place">&#182;</a></h3><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">my_territories</span><span class="p">)</span>
+</pre></div>
+<p><strong><code>place(state)</code></strong> is called repeatedly at the beginning of the game to choose which of a player's randomly assigned territories to reinforce with the initial allocation of armies. Like all <code>Agent</code> methods, it accepts a <code>state</code> object (see <a href="https://douglasorr.github.io/Preeminence/#preem.PlayerState">PlayerState docs</a>), which is your agent's conduit to all info about the current state of the game. Since it's so important, let's have a look at <code>state</code>. The best way to do this is to play a game up to the point our agent has just returned from <code>place</code>:</p>
 
 </div>
 </div>
@@ -11971,11 +11959,9 @@ RandomAgent placed an army on 3
 <p>Now we can see what's going on here - territories are referred to by integer ID, and the job of <code>place</code> is to choose one of the territories owned by the current player to reinforce (with a single army). It is an error to return anything except the ID of an owned territory.</p>
 <blockquote><p><strong>Strategy point:</strong> consider the pros &amp; cons of distributing your armies - do you want to concentrate your armies on one area of the map (aggressive), or spread them out to defend all of your territories (defensive), or maybe something in between (balanced)?</p>
 </blockquote>
-<h3 id="reinforce"><code>reinforce</code><a class="anchor-link" href="#reinforce">&#182;</a></h3>
-<pre><code>def reinforce(self, state, count):
-    return {random.choice(state.my_territories): count}
-
-</code></pre>
+<h3 id="reinforce"><code>reinforce</code><a class="anchor-link" href="#reinforce">&#182;</a></h3><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">reinforce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">count</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">my_territories</span><span class="p">):</span> <span class="n">count</span><span class="p">}</span>
+</pre></div>
 <p><strong><code>reinforce(state, count)</code></strong> is called each turn to place reinforcement armies on owned territories. It is very similar to <code>place</code>. The difference is that reinforce places multiple armies (at least 3) in one go (the number of armies depends on the territories you control and bonuses from cards), so returns a dictionary (of <code>{territory: count}</code>) rather than a single ID:</p>
 
 </div>
@@ -12026,17 +12012,15 @@ territory-continent assignments (0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3,
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>Your agent may reinforce the same territory with <code>count</code> armies, or multiple territories (totalling <code>count</code> armies deployed). It is an error to reinforce with too many or too few armies, or to try to reinforce an enemy territory (obviously!)</p>
 <p><em>Note that the game is effectively paused at the moment, and if you re-run the above cell you might get a different result each time (until the game is over and you get an error). If this happens, you can go back and re-run the previous cell (that creates <code>game = P.Game.start(...)</code>) to start a new game.</em></p>
-<p><strong>How many armies?</strong> The number of armies you are given to allocate in <code>reinforce</code> each turn is calculated as <code>territory_armies + continent_armies + redeem_set_armies</code>. <code>territory_armies</code> is based on the number of territories you control (see <a href="index.html#preem.count_reinforcements"><code>count_reinforcements</code></a>), and is always at least <code>3</code>. <code>continent_armies</code> are awarded when you own every territory in a group (see the groups of territories indicated by <code>map.continents</code> above) - in the above example, owning territories <code>[0, 1, 2, 3]</code> would mean you control continent <code>0</code>, therefore receive a bonus <code>2</code> armies. Finally, <code>redeem_set_armies</code> are awarded when you redeem sets of cards (see <code>redeem</code>, below).</p>
+<p><strong>How many armies?</strong> The number of armies you are given to allocate in <code>reinforce</code> each turn is calculated as <code>territory_armies + continent_armies + redeem_set_armies</code>. <code>territory_armies</code> is based on the number of territories you control (see <a href="https://douglasorr.github.io/Preeminence/#preem.count_reinforcements">P.count_reinforcements()</a>), and is always at least <code>3</code>. <code>continent_armies</code> are awarded when you own every territory in a group (see the groups of territories indicated by <code>map.continents</code> above) - in the above example, owning territories <code>[0, 1, 2, 3]</code> would mean you control continent <code>0</code>, therefore receive a bonus <code>2</code> armies. Finally, <code>redeem_set_armies</code> are awarded when you redeem sets of cards (see <code>redeem</code>, below).</p>
 <blockquote><p><strong>Strategy point:</strong> the value of reinforcing a territory depends on what it is connected to - which areas of the map are strategically useful for you to attack or defend? Is there any point in reinforcing a territory that cannot attack or be directly attacked?</p>
 </blockquote>
-<h3 id="redeem"><code>redeem</code><a class="anchor-link" href="#redeem">&#182;</a></h3>
-<pre><code>def redeem(self, state):
-    if 5 &lt;= len(state.cards):
-        sets = list(P.get_matching_sets(state.cards))
-        return random.choice(sets)
-
-</code></pre>
-<p><strong><code>redeem(state)</code></strong> is called each turn to interact with the game's <em>cards</em> system. Cards are collected once a turn if your agent has conquered at least one territory, or claimed from another agent if you were the one to finish them off. They each contain one of three symbols, and can be matched into sets (but you can just use <a href="index.html#preem.get_matching_sets"><code>P.get_matching_sets</code></a> to do all of that work for you - see the docs if interested.) You don't have to do anything special to collect cards, however your agent implements <code>redeem</code> to decide when to trade them in for armies.</p>
+<h3 id="redeem"><code>redeem</code><a class="anchor-link" href="#redeem">&#182;</a></h3><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">redeem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">cards</span><span class="p">):</span>
+        <span class="n">sets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">get_matching_sets</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">cards</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">sets</span><span class="p">)</span>
+</pre></div>
+<p><strong><code>redeem(state)</code></strong> is called each turn to interact with the game's <em>cards</em> system. Cards are collected once a turn if your agent has conquered at least one territory, or claimed from another agent if you were the one to finish them off. They each contain one of three symbols, and can be matched into sets (but you can just use <a href="https://douglasorr.github.io/Preeminence/#preem.get_matching_sets">P.get_matching_sets()</a> to do all of that work for you - see the docs if interested.) You don't have to do anything special to collect cards, however your agent implements <code>redeem</code> to decide when to trade them in for armies.</p>
 
 </div>
 </div>
@@ -12084,17 +12068,15 @@ value of next set: 4
 <p>Your agent may choose not to redeem any cards, unless it owns 5 or more cards (see <code>state.cards</code>), in which case there must be a set, and it is an error not to return a set from <code>redeem</code>.</p>
 <blockquote><p><strong>Strategy point:</strong> during the game, the value of each set redeemed increases rapidly. Do you want to wait until the last possible moment to declare a set, so that it might be worth more, or is it more useful to get the armies sooner? How aggressively should I try to knock out another player, so that I can claim their cards? Does redeeming my cards early make me less of a target?</p>
 </blockquote>
-<h3 id="act"><code>act</code><a class="anchor-link" href="#act">&#182;</a></h3>
-<pre><code>def act(self, state, earned_card):
-    possible_attacks = [a for a in P.get_all_possible_attacks(state) if a.count &gt;= 2]
-    if possible_attacks:
-        return random.choices(possible_attacks, weights=[a.count for a in possible_attacks])[0]
-    possible_moves = P.get_all_possible_moves(state)
-    if possible_moves:
-        return random.choices(possible_moves, weights=[a.count for a in possible_moves])[0]
-    return None
-
-</code></pre>
+<h3 id="act"><code>act</code><a class="anchor-link" href="#act">&#182;</a></h3><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">act</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">earned_card</span><span class="p">):</span>
+    <span class="n">possible_attacks</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">P</span><span class="o">.</span><span class="n">get_all_possible_attacks</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">possible_attacks</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">possible_attacks</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">possible_attacks</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">possible_moves</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">get_all_possible_moves</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">possible_moves</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">possible_moves</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">possible_moves</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="bp">None</span>
+</pre></div>
 <p><strong><code>act(state, earned_card)</code></strong> is probably the most important method for the agent. Here, your agent may attack adjacent enemy territories multiple times, then optionally make a end-of-turn move between two adjacent friendly territories. <code>act</code> can return an <code>Attack</code> (which will continue the turn after the attack has taken place), <code>Move</code> or <code>None</code> (both of which end the turn). Let's look at an attack:</p>
 
 </div>
@@ -12146,7 +12128,7 @@ value of next set: 4
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Note that our RandomAgent uses the helpers <a href="index.html#preem.get_all_possible_attacks"><code>get_all_possible_attacks</code></a> and <a href="index.html#preem.get_all_possible_moves"><code>get_all_possible_moves</code></a> to list all the possibilities. However, as you can see from the example above, all the information needed find allowed attacks is available through <code>state</code> (either in <code>state.world</code> or <code>state.world.map</code>).</p>
+<p>Note that our RandomAgent uses the helpers <a href="https://douglasorr.github.io/Preeminence/#preem.get_all_possible_attacks">P.get_all_possible_attacks()</a> and <a href="https://douglasorr.github.io/Preeminence/#preem.get_all_possible_moves">P.get_all_possible_moves()</a> to list all the possibilities. However, as you can see from the example above, all the information needed find allowed attacks is available through <code>state</code> (either in <code>state.world</code> or <code>state.world.map</code>) - you might find this more flexible.</p>
 <p>Attacks must be from a friendly to an adjacent enemy territory, and must have a maximum count less than the number of armies on that territory (as you are not allowed to leave a territory empty). When you attack, you roll <code>min(3, count)</code> dice, and the defender rolls <code>min(2, armies[to])</code> dice. The dice are paired from highest to lowest, and ties are broken in favour of the defender. Each winning dice conquers an army from the opponent. For example, when the attacker has 3 armies and the defender has 2, the possible outcomes are 1) defender loses two armies (if there are no defending armies left, the attacker moves in with <code>count</code> and now owns the territory); 2) each lose one army (attacker gets another chance to <code>act</code>, and is allowed to try again); 3) attacker loses two armies (likewise, they will get a chance to try again via <code>act</code> as long as they have enough armies remaining on <code>from_</code>).</p>
 <p>As long as at least one attack in a turn has succeeded in conquering a territory, <code>earned_card is True</code> and after the turn the player is awarded an extra card from the deck. If your agent conquers the last territory belonging to a player, all of that players cards will be automatically transferred to your <code>state.cards</code>, and may be redeemed on the next turn as usual.</p>
 <p>Moves are very similar, but only a single move is possible per turn (at the end), and the destination must be an adjacent friendly territory.</p>
@@ -12182,7 +12164,7 @@ value of next set: 4
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>GameResult(winners={#2:RandomAgent@38c4a668}, eliminated=[#2:RandomAgent@38c4a668])</pre>
+<pre>GameResult(winners={#0:RandomAgent@03d534a8}, eliminated=[#1:RandomAgent@03d534a8, #2:RandomAgent@03d534a8])</pre>
 </div>
 
 </div>
@@ -12274,7 +12256,7 @@ player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=5)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
-GameResult(winners={#1:RandomAgent@38c46438}, eliminated=[#1:RandomAgent@38c46438])
+GameResult(winners={#1:RandomAgent@000a2438}, eliminated=[#0:RandomAgent@000a2438])
 </pre>
 </div>
 </div>
@@ -12287,7 +12269,7 @@ GameResult(winners={#1:RandomAgent@38c46438}, eliminated=[#1:RandomAgent@38c4643
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Here we've used the fact that <code>Game</code> is iterable to view the sequence of events (i.e. using simple <code>next()</code> to go to the next event rather than <code>next_event()</code> which searches for the next matching event. Also note that <code>player_index</code> (also used to indicate the winner) is simply an index into the original <code>agents</code> array.</p>
+<p>Here we've used the fact that <code>Game</code> is <em>iterable</em> to view the whole sequence of events (rather than using <code>next_event()</code> which searches for the next matching event). Also note that <code>player_index</code> (also used to indicate the winner) is simply an index into the original <code>agents</code> array.</p>
 <p><em>Note that, as our first 1v1 game, an extra agent has appeared, called <code>Neutral</code>. The Neutral agent isn't too special - they just place their armies randomly at the beginning, then never reinforce, redeem or act - just sitting there waiting for you to attack!)</em></p>
 <blockquote><p><strong>Strategy point:</strong> is attacking <code>Neutral</code> any less valuable than attacking your opponent? You can still gain cards, territories and continents, but you're not making your enemy weaker at the same time.</p>
 </blockquote>
@@ -12373,7 +12355,7 @@ RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
-GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c46080])
+GameResult(winners={#1:RandomAgent@000a25c0}, eliminated=[#0:NewRandomAgent@000a25f8])
 </pre>
 </div>
 </div>
@@ -12449,7 +12431,7 @@ GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c4608
 <!-- 1 -->
 <g id="node2" class="node">
 <title>1</title>
-<g id="a_node2"><a xlink:title="#1: L2&#10;#0: RandomAgent@38c167b8&#10;1 armies">
+<g id="a_node2"><a xlink:title="#1: L2&#10;#0: RandomAgent@03d53518&#10;1 armies">
 <ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="5" cy="-231.818" rx="5" ry="5"/>
 </a>
 </g>
@@ -12480,7 +12462,7 @@ GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c4608
 <!-- 3 -->
 <g id="node4" class="node">
 <title>3</title>
-<g id="a_node4"><a xlink:title="#3: R1&#10;#1: RandomAgent@38c167b8&#10;1 armies">
+<g id="a_node4"><a xlink:title="#3: R1&#10;#1: RandomAgent@03d53518&#10;1 armies">
 <ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="409.9617" cy="-146.2908" rx="5" ry="5"/>
 </a>
 </g>
@@ -12493,7 +12475,7 @@ GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c4608
 <!-- 4 -->
 <g id="node5" class="node">
 <title>4</title>
-<g id="a_node5"><a xlink:title="#4: R2&#10;#1: RandomAgent@38c167b8&#10;1 armies">
+<g id="a_node5"><a xlink:title="#4: R2&#10;#1: RandomAgent@03d53518&#10;1 armies">
 <ellipse fill="#698b22" stroke="#ee0000" stroke-width="4" cx="583.5166" cy="-231.818" rx="5" ry="5"/>
 </a>
 </g>
@@ -12506,7 +12488,7 @@ GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c4608
 <!-- 5 -->
 <g id="node6" class="node">
 <title>5</title>
-<g id="a_node6"><a xlink:title="#5: R3&#10;#0: RandomAgent@38c167b8&#10;1 armies">
+<g id="a_node6"><a xlink:title="#5: R3&#10;#0: RandomAgent@03d53518&#10;1 armies">
 <ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="583.5166" cy="-60.7636" rx="5" ry="5"/>
 </a>
 </g>
@@ -12525,9 +12507,9 @@ GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c4608
 <g id="node7" class="node">
 <title>legend</title>
 <text text-anchor="start" x="156.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
-<text text-anchor="start" x="205.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">Rando..167b8</text>
+<text text-anchor="start" x="205.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">Rando..53518</text>
 <text text-anchor="start" x="289.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="297.2583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#698b22">Rando..167b8</text>
+<text text-anchor="start" x="297.2583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#698b22">Rando..53518</text>
 <text text-anchor="start" x="381.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
 <text text-anchor="start" x="389.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#666666">Neutral</text>
 </g>
@@ -12592,7 +12574,7 @@ GameResult(winners={#1:RandomAgent@38c46080}, eliminated=[#1:RandomAgent@38c4608
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="The-&quot;real&quot;-map">The "real" map<a class="anchor-link" href="#The-&quot;real&quot;-map">&#182;</a></h3><p>Most of the maps we've seen so far are small, simplified versions that will serve you well for development. But the main tournament map is <code>"maps/classic.json"</code>, which looks like this:</p>
+<h2 id="The-&quot;real&quot;-map">The "real" map<a class="anchor-link" href="#The-&quot;real&quot;-map">&#182;</a></h2><p>Most of the maps we've seen so far are small, simplified versions that will serve you well for development. But the main tournament map is called <em>classic</em>, and looks like this:</p>
 
 </div>
 </div>
@@ -13455,7 +13437,8 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Tournaments">Tournaments<a class="anchor-link" href="#Tournaments">&#182;</a></h2><p>You will hopefully soon have some different candidate agents (or settings for agents) to try. Since Preeminence includes a fair amount of randomness, we recommend comparing them based on multiple games. We have some basic tournaments that you can use to get started, or of course you can define your own based on <a href="index.html#preem.Game.play"><code>Game.play</code></a>. Here are the built-in 1v1 and multiplayer round robin tournaments:</p>
+<h2 id="Tournaments">Tournaments<a class="anchor-link" href="#Tournaments">&#182;</a></h2><p>Soon, you will hopefully soon have loads of candidate agents (or at least settings for agents) to try. Since Preeminence includes a fair amount of randomness, we <strong>strongly recommend comparing them across multiple games</strong>. We have some basic tournaments that you can use to get started, or of course you can define your own based on <a href="https://douglasorr.github.io/Preeminence/#preem.Game.play">Game.play()</a>.</p>
+<p>Here are the built-in 1v1 and multiplayer round robin tournaments:</p>
 
 </div>
 </div>
@@ -13488,10 +13471,10 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <tr><th style="text-align: right;">  player index</th><th>name                </th><th style="text-align: right;">  win rate</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: right;">             2</td><td>RandomAgent@14f87f60</td><td style="text-align: right;">     55.0%</td></tr>
-<tr><td style="text-align: right;">             3</td><td>RandomAgent@14f87f28</td><td style="text-align: right;">     53.3%</td></tr>
-<tr><td style="text-align: right;">             0</td><td>RandomAgent@14f87fd0</td><td style="text-align: right;">     51.7%</td></tr>
-<tr><td style="text-align: right;">             1</td><td>RandomAgent@14f87f98</td><td style="text-align: right;">     40.0%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>RandomAgent@eb79de10</td><td style="text-align: right;">     58.3%</td></tr>
+<tr><td style="text-align: right;">             2</td><td>RandomAgent@dc412048</td><td style="text-align: right;">     53.3%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>RandomAgent@eb79d5f8</td><td style="text-align: right;">     45.0%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>RandomAgent@dc4120f0</td><td style="text-align: right;">     43.3%</td></tr>
 </tbody>
 </table>
 </div>
@@ -13531,10 +13514,10 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <tr><th style="text-align: right;">  player index</th><th>name                </th><th style="text-align: right;">  win rate</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: right;">             2</td><td>RandomAgent@14fb3908</td><td style="text-align: right;">     27.2%</td></tr>
-<tr><td style="text-align: right;">             3</td><td>RandomAgent@14fb3550</td><td style="text-align: right;">     26.1%</td></tr>
-<tr><td style="text-align: right;">             1</td><td>RandomAgent@14fb37f0</td><td style="text-align: right;">     24.4%</td></tr>
-<tr><td style="text-align: right;">             0</td><td>RandomAgent@14fb3320</td><td style="text-align: right;">     22.2%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>RandomAgent@dc41ef60</td><td style="text-align: right;">     30.0%</td></tr>
+<tr><td style="text-align: right;">             2</td><td>RandomAgent@dc41ef28</td><td style="text-align: right;">     27.2%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>RandomAgent@dc41eeb8</td><td style="text-align: right;">     22.2%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>RandomAgent@dc41efd0</td><td style="text-align: right;">     20.6%</td></tr>
 </tbody>
 </table>
 </div>
@@ -13544,6 +13527,16 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 </div>
 </div>
 
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Getting-serious...">Getting serious...<a class="anchor-link" href="#Getting-serious...">&#182;</a></h2><p>Now you've seen all that you need to get going writing the most unbeatable agent - good luck! Why don't you head over to a <a href="Working.ipynb">fresh notebook</a> that's a bit less cluttered - that link will take you to a convenient skeleton.</p>
+<p><em>Thanks for following through; have fun!</em></p>
+
+</div>
+</div>
 </div>
     </div>
   </div>
