@@ -297,8 +297,12 @@ class _View:
                 render(render_command.format(dpi=dpi, dir=dir, n=frame_count))
                 playlist.write(&#39;file {n:04d}.png\nduration {time}\nfile {n:04d}.png\n&#39;.format(
                     n=frame_count, time=frame_time(game.world)))
-            subprocess.check_call(&#39;ffmpeg -y -f concat -i {playlist} -r {fps} {out}&#39;.format(
-                playlist=playlist.name, out=out_path, fps=fps), shell=True)
+            subprocess.check_call(
+                &#39;ffmpeg -y -f concat -i {playlist}&#39;
+                &#39; -r {fps} -pix_fmt yuv420p&#39;
+                &#39; -vf &#34;pad=ceil(iw/2)*2:ceil(ih/2)*2&#34;&#39;
+                &#39; {out}&#39;.format(
+                    playlist=playlist.name, out=out_path, fps=fps), shell=True)
 
         import IPython.display
         return IPython.display.Video(out_path)
