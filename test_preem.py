@@ -115,6 +115,19 @@ def test_map_world_state_game_repr():
 
 # Core unit tests
 
+def test_start_game():
+    agents = [um.Mock(), um.Mock()]
+    agents[0].place.side_effect = random_agent.Agent().place
+    agents[1].place.side_effect = random_agent.Agent().place
+    event = next(P.Game.start(P.Map.load('maps/tiny3.json'), agents))
+    agents[0].start_game.assert_called_once()
+    agents[1].start_game.assert_called_once()
+    assert all(owner is not None for owner in event.state.world.owners), \
+        'start_game should be called after the initial allocation of territories'
+    assert all(armies == 1 for armies in event.state.world.armies), \
+        'start_game should be called for all agents before any place() calls'
+
+
 def test_placement_phase():
     map_ = P.Map.load('maps/tiny3.json')
     game = P.Game.start(map_, [random_agent.Agent(), random_agent.Agent()])
@@ -368,9 +381,11 @@ def test_attack_and_move_error():
                    P.Attack(2, 3, 2),  # attacking to friendly
                    P.Attack(2, 1, 3),  # attacking with too many units
                    P.Attack(2, 0, 2),  # attacking to disconnected territory
+                   P.Attack(2, 1, 0),  # attacking with 0 or negative units
                    P.Move(2, 1, 2),    # moving to enemy
                    P.Move(1, 2, 2),    # moving from enemy
-                   P.Move(2, 3, 3)]:   # moving too many units
+                   P.Move(2, 3, 3),    # moving too many units
+                   P.Move(2, 3, 0)]:   # moving 0 or negative units
         agents[1].act = um.Mock(return_value=action)
         with pytest.raises(ValueError) as e:
             list(P._attack_and_move(agents[1], states[1], um.Mock(), agents_and_states, rand))
@@ -385,7 +400,7 @@ def test_attack_and_move_error():
     assert world.owners == [0, 0, 1, 1]
 
 
-class EverythingWrongAgent:
+class EverythingWrongAgent(P.Agent):
     def __init__(self):
         self._ticker = 0
 

@@ -601,6 +601,7 @@ class Agent:
     ![Agent method flow](img/agent_flow.svg)
 
      - The game sets up the map, assigns starting territories randomly to each player.
+     - Game calls `start_game` (optional override) to allow the Agent to set itself up
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
        until enough initial armies have been placed.
      - For each turn, game:
@@ -613,6 +614,17 @@ class Agent:
     def __repr__(self):
         """Simplified string identifying the agent."""
         return '{}@{:08x}'.format(type(self).__name__, id(self) & 0xffffffff)
+
+    def start_game(self, state):
+        """(Optional override) called once before the start of a game, allowing the agent to prepare.
+
+        This is called after initial territories have been allocated, but before any agent has placed
+        armies on the map. In particular, any information in `state.map` (a `Map`) will stay the same
+        until the next game (and therefore the next `start_game`).
+
+        `state` -- `PlayerState`
+        """
+        pass
 
     def place(self, state):
         """Place a single army on one of your territories in the world (during the initial placement phase).
@@ -744,6 +756,9 @@ class _ValidatingAgent(Agent):
     def act(self, state, earned_card):
         action = self.agent.act(state, earned_card)
         if action is not None:  # Attack or Move
+            if action.count <= 0:
+                raise self._error('cannot attack/move with {} armies (<= 0) for {}',
+                                  action.count, action)
             if state.world.armies[action.from_] <= action.count:
                 raise self._error('insufficient armies to attack/move ({}) for {}',
                                   state.world.armies[action.from_], action)
@@ -848,12 +863,18 @@ def _placement_phase(world, agents_and_states, rand):
     if world.map.max_players < n_players:
         raise ValueError('Too many players for map "{}" ({}, max: {})'.format(
             world.map.name, n_players, world.map.max_players))
+
+    start_game_called = False
     for _ in range(world.map.initial_armies[world.n_players - world.has_neutral]):
         for agent, state in placement_order:
             if empty_territories:
                 placement = empty_territories.pop()
                 assert world.armies[placement] == 0
             else:
+                if not start_game_called:
+                    for a, s in placement_order:
+                        a.start_game(s)
+                    start_game_called = True
                 placement = _ValidatingAgent(agent).place(state)
                 yield world._add_event(Event(agent, state, 'place', {}, placement))
             world.owners[placement] = state.player_index
