@@ -7,7 +7,7 @@ class Agent(P.Agent):
         self.min_attack = min_attack
 
     def __repr__(self):
-        return 'RandomAgent[min_attack={}]'.format(self.min_attack)
+        return 'RandomAgent'
 
     def place(self, state):
         return random.choice(state.my_territories)

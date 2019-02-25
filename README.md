@@ -7,17 +7,23 @@ Get started using the agent [tutorial](https://douglasorr.github.io/Preeminence/
 
 ## Publishing
 
-    # Publish Docker image
-    VERSION=0.1
+    # 1. Check everything works
     ./run build
     ./run check
+    ./run docs --examples
+
+    # 2. Publish Docker image
+    VERSION=0.1
     docker login
     docker tag preeminence douglasorr/preeminence:$VERSION
     docker push douglasorr/preeminence:$VERSION
     docker tag preeminence douglasorr/preeminence:latest
     docker push douglasorr/preeminence:latest
 
-    # Publish docs
-    ./run docs --examples
+    # 3. Publish docs
     cd docs && git add . && git commit -m "Update docs"
     git push
+
+    # 4. Check everything worked
+    # https://cloud.docker.com/repository/docker/douglasorr/preeminence/tags
+    # https://douglasorr.github.io/Preeminence
