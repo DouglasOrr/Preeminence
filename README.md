@@ -22,8 +22,11 @@ Get started using the agent [tutorial](https://douglasorr.github.io/Preeminence/
 
     # 3. Publish docs
     cd docs && git add . && git commit -m "Update docs"
-    git push
+    git push && cd ..
 
-    # 4. Check everything worked
+    # 4. Make sure git knows
+    git push origin HEAD:refs/tags/$VERSION
+
+    # 5. Check everything worked
     # https://cloud.docker.com/repository/docker/douglasorr/preeminence/tags
     # https://douglasorr.github.io/Preeminence
