@@ -6,9 +6,9 @@ docker run -d --name ${NAME} -p ${PORT}:${PORT} -e PYTHONPATH=/preem -v `pwd`:/p
 
 sleep 3
 
-TOKEN=$(docker logs ${NAME} 2>&1 | grep -oP '(?<=token=)(.+)$' | head -1)
+TOKEN=$(docker logs ${NAME} 2>&1 | grep -oE '\?token=.+$' | head -1)
 echo "See:"
-echo "    http://localhost:${PORT}/notebooks/Tutorial.ipynb?token=${TOKEN}"
+echo "    http://localhost:${PORT}/notebooks/Tutorial.ipynb${TOKEN}"
 echo
 echo "When you want to stop your server:"
 echo "    docker rm -f ${NAME}"
