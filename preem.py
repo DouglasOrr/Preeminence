@@ -21,6 +21,7 @@ import tempfile
 import tabulate
 import itertools as it
 import networkx as nx
+import numpy as np
 
 
 class _View:
@@ -220,7 +221,26 @@ class Map:
 
     @property
     def to_graph(self):
+        """`nx.Graph` -- an undirected graph of the map, giving access to
+        [networkx](https://networkx.github.io/documentation/stable/index.html) graph algorithms.
+
+        Note that the graph is created from scratch each time, so the calling code may freely
+        modify it.
+        """
         return _View.map_to_graph(self)
+
+    @property
+    def adjacency_matrix(self):
+        """Convert the graphs `edge set` into an adjacency matix.
+
+        returns -- `np.array(N x X, dtype=bool)` -- an adjacency matrix (i.e. `m[2,3] is True`
+                   means that territories 2 & 3 are connected
+        """
+        adj = np.zeros((self.n_territories, self.n_territories), dtype=np.bool)
+        for row, edges in enumerate(self.edges):
+            adj[row, list(edges)] = True
+        assert (adj.T == adj).all()
+        return adj
 
     @property
     def n_territories(self):

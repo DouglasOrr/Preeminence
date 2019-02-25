@@ -617,6 +617,12 @@ def test_maps(map_name):
     assert len(g) == map_.n_territories
     assert nx.algorithms.is_connected(g), 'can run NetworkX algorithms'
 
+    # Adjacency matrix
+    m = map_.adjacency_matrix
+    assert m.shape == (map_.n_territories, map_.n_territories)
+    for n, edges in enumerate(map_.edges):
+        assert set(np.where(m[n])[0]) == edges
+
 
 class ConsistencyCheckingAgent(P.Agent):
     """Wrap preem.Agent to check consistency of the world every time it is called."""
