@@ -1,10 +1,13 @@
 flake8
 networkx
 numpy
+pandas
 pdoc3
 pygraphviz
 pylint
 pytest
 pytest-cov
 scipy
+scikit-learn
+seaborn
 tabulate

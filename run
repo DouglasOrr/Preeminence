@@ -51,11 +51,12 @@ def check():
     docker('pylint --errors-only *.py run')
 
 
-def docs(examples):
+def docs(examples, pydoc_only):
     docker('pdoc3 --html --overwrite --html-dir docs preem || true')
     os.rename('docs/preem.html', 'docs/index.html')
-    docker('jupyter nbconvert --execute --to html Tutorial.ipynb --output-dir docs --output tutorial')
-    docker('python3 render_doc_examples.py {}'.format('--force' if examples else ''))
+    if not pydoc_only:
+        docker('jupyter nbconvert --execute --to html Tutorial.ipynb --output-dir docs --output tutorial')
+        docker('python3 render_doc_examples.py {}'.format('--force' if examples else ''))
 
 
 def notebook(port):
@@ -91,6 +92,7 @@ if __name__ == '__main__':
     subs.add_parser('check', help='run all checks (including slow tests)').set_defaults(action=check)
     p = subs.add_parser('docs', help='generate documentation')
     p.add_argument('--examples', action='store_true', help='re-render the documentation examples')
+    p.add_argument('--pydoc-only', action='store_true', help='only generate the Python API docs')
     p.set_defaults(action=docs)
     p = subs.add_parser('notebook', help='run dev notebook')
     p.add_argument('--port', default='8888', help='port to serve on')
