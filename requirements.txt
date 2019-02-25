@@ -1,4 +1,6 @@
 flake8
+jupyter
+matplotlib
 networkx
 numpy
 pandas
@@ -11,3 +13,5 @@ scipy
 scikit-learn
 seaborn
 tabulate
+tensorflow
+torch

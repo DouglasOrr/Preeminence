@@ -62,9 +62,9 @@ def test_get_all_possible_attacks_or_moves():
     assert set(P.get_all_possible_moves(P.PlayerState(world, 1))) == {
         P.Move(from_, to, count)
         for from_, to, count in [
-                (0, 2, 4),
-                (2, 0, 1),
-                (5, 4, 2),
+            (0, 2, 4),
+            (2, 0, 1),
+            (5, 4, 2),
         ]}
 
 

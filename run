@@ -7,7 +7,7 @@ import sys
 import time
 
 
-IMAGE = 'preem'
+IMAGE = 'preeminence'
 
 
 def sh(cmd, **kwargs):
@@ -46,7 +46,7 @@ def test(slow, filter, verbose):
 
 
 def check():
-    test(slow=True)
+    test(slow=True, filter=None, verbose=False)
     docker('flake8 *.py run')
     docker('pylint --errors-only *.py run')
 
@@ -62,7 +62,7 @@ def docs(examples, pydoc_only):
 def notebook(port):
     name = '$USER-preem-notebook'
     sh('docker rm -f {name} || true', name=name)
-    docker('start-notebook.sh --port {port}',
+    docker('jupyter notebook --allow-root --port {port} --ip 0.0.0.0',
            docker_detach=True,
            docker_args='--name {name} -p {port}:{port}'.format(port=port, name=name),
            port=port)
