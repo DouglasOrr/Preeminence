@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.5.2" />
 <title>preem API documentation</title>
-<meta name="description" content="Preeminence is a game in which autonomous agents attempt world domination in turn based strategy …" />
+<meta name="description" content="Preeminence is a game in which autonomous agents attempt world domination in turn based strategy,
+on a map that looks like this: …" />
 <link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
 <link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
@@ -20,19 +21,113 @@
 <h1 class="title"><code>preem</code> module</h1>
 </header>
 <section id="section-intro">
-<p>Preeminence is a game in which autonomous agents attempt world domination in turn based strategy.</p>
+<p>Preeminence is a game in which autonomous agents attempt world domination in turn based strategy,
+on a map that looks like this:</p>
 <p><img alt="Example classic map" src="img/eg_classic.svg"></p>
 <p><strong>Get started now with our friendly <a href="tutorial.html">tutorial</a>.</strong></p>
-<p>After the tutorial, we'd suggest browsing through <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a>, <a title="preem.Map" href="#preem.Map"><code>Map</code></a>, <a title="preem.World" href="#preem.World"><code>World</code></a>, <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a> and <a title="preem.Game" href="#preem.Game"><code>Game</code></a>).</p>
+<p>After the tutorial, we'd suggest browsing through <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a>, <a title="preem.Map" href="#preem.Map"><code>Map</code></a>, <a title="preem.World" href="#preem.World"><code>World</code></a>, <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a> and <a title="preem.Game" href="#preem.Game"><code>Game</code></a>,
+but we also have some tips &amp; tricks for developing your agent.</p>
+<h2 id="tips-tricks">Tips &amp; tricks</h2>
+<p><em>Some hints for you in the pursuit of strategic excellence&hellip;</em></p>
+<p><strong>Develop methods interactively</strong> - the edit/test/debug loop you find yourself in might sometimes
+feel a bit cumbersome. You'll probably find that the big challenge is getting a <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a> instance
+with the right data in for you to test.</p>
+<p>Using <a title="preem.Game.start" href="#preem.Game.start"><code>Game.start()</code></a>, <a title="preem.Game.next_event" href="#preem.Game.next_event"><code>Game.next_event()</code></a>, and the fact that you can easily edit the world <em>(note: please
+don't do this "in production" - that would be cheating)</em>, you can get an appropriate <code>state</code> to work with:</p>
+<pre><code class="python"># In an IPython cell...
+random.seed(100)
+game = P.Game.start(P.Map.load('maps/mini.json'), [MyAgent(), RandomAgent()])
+event = game.next_event(method='act')
+state = event.state
+
+state.world.owners = [0, 1, 0, 0, 0, 0]
+state.world.armies = [2, 2, 2, 2, 10, 2]
+IPython.display.display(event.state.world)  # Requires: import IPython.display
+
+# try implementing your agent's act() method using &quot;state&quot;
+</code></pre>
+<p><em>WARNING - if you copy your code from a cell into your agent class, be very careful to ensure all the
+variables come from the method args (it is very easy to use the wrong state/armies/owners!)</em></p>
+<p><strong>Use the various available maps</strong> - you may find that <code>mini</code> (or even <code>tiny3</code> or <code>tiny4</code>) are
+good for implementing and debugging your agent (it is much easier to find which territories are which).
+<code>quad</code> is great for quick tournaments &amp; debugging, then <code>classic</code> should be the real test.</p>
+<p><strong>Use numpy &amp; networkx to do the heavy lifting</strong> - although you can write an agent without going near
+either, you may find they can make your code simpler, and faster. See
+<a href="#preem.Map.adjacency_matrix"><code>Map.adjacency_matrix</code></a> and <a href="#preem.Map.to_graph"><code>Map.to_graph</code></a>, but
+also note that you can wrap other info in arrays easily, for example:</p>
+<pre><code class="python"># using plain Python
+my_territory_mask = [owner == state.player_index for owner in state.map.owners]
+
+# or (faster, more convenient)
+owners = np.array(state.map.owners)
+my_territory_mask = (owners == state.player_index)
+</code></pre>
+<p><strong>React to other agents' strategies</strong> - if your agent has the brainpower, you may be interested in the
+hidden gem inside World, that is <a href="#preem.World.event_log"><code>World.event_log</code></a>, which contains the events
+so far generated by all agents playing the game. Note that these events are deliberately incomplete -
+details such as the agent instances themselves, and the cards owned by each agent are hidden.</p>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">&#34;&#34;&#34;Preeminence is a game in which autonomous agents attempt world domination in turn based strategy.
+<pre><code class="python">&#34;&#34;&#34;Preeminence is a game in which autonomous agents attempt world domination in turn based strategy,
+on a map that looks like this:
 
 ![Example classic map](img/eg_classic.svg)
 
 **Get started now with our friendly [tutorial](tutorial.html).**
 
-After the tutorial, we&#39;d suggest browsing through `Agent`, `Map`, `World`, `PlayerState` and `Game`).
+After the tutorial, we&#39;d suggest browsing through `Agent`, `Map`, `World`, `PlayerState` and `Game`,
+but we also have some tips &amp; tricks for developing your agent.
+
+## Tips &amp; tricks
+
+_Some hints for you in the pursuit of strategic excellence..._
+
+**Develop methods interactively** - the edit/test/debug loop you find yourself in might sometimes
+feel a bit cumbersome. You&#39;ll probably find that the big challenge is getting a `PlayerState` instance
+ with the right data in for you to test.
+
+Using `Game.start()`, `Game.next_event()`, and the fact that you can easily edit the world _(note: please
+don&#39;t do this &#34;in production&#34; - that would be cheating)_, you can get an appropriate `state` to work with:
+
+```python
+# In an IPython cell...
+random.seed(100)
+game = P.Game.start(P.Map.load(&#39;maps/mini.json&#39;), [MyAgent(), RandomAgent()])
+event = game.next_event(method=&#39;act&#39;)
+state = event.state
+
+state.world.owners = [0, 1, 0, 0, 0, 0]
+state.world.armies = [2, 2, 2, 2, 10, 2]
+IPython.display.display(event.state.world)  # Requires: import IPython.display
+
+# try implementing your agent&#39;s act() method using &#34;state&#34;
+```
+
+_WARNING - if you copy your code from a cell into your agent class, be very careful to ensure all the
+variables come from the method args (it is very easy to use the wrong state/armies/owners!)_
+
+**Use the various available maps** - you may find that `mini` (or even `tiny3` or `tiny4`) are
+good for implementing and debugging your agent (it is much easier to find which territories are which).
+`quad` is great for quick tournaments &amp; debugging, then `classic` should be the real test.
+
+**Use numpy &amp; networkx to do the heavy lifting** - although you can write an agent without going near
+either, you may find they can make your code simpler, and faster. See
+[`Map.adjacency_matrix`](#preem.Map.adjacency_matrix) and [`Map.to_graph`](#preem.Map.to_graph), but
+ also note that you can wrap other info in arrays easily, for example:
+
+```python
+# using plain Python
+my_territory_mask = [owner == state.player_index for owner in state.map.owners]
+
+# or (faster, more convenient)
+owners = np.array(state.map.owners)
+my_territory_mask = (owners == state.player_index)
+```
+
+**React to other agents&#39; strategies** - if your agent has the brainpower, you may be interested in the
+hidden gem inside World, that is [`World.event_log`](#preem.World.event_log), which contains the events
+ so far generated by all agents playing the game. Note that these events are deliberately incomplete -
+details such as the agent instances themselves, and the cards owned by each agent are hidden.
 &#34;&#34;&#34;
 
 import collections
@@ -49,6 +144,7 @@ import tempfile
 import tabulate
 import itertools as it
 import networkx as nx
+import numpy as np
 
 
 class _View:
@@ -81,7 +177,7 @@ class _View:
         g = nx.Graph(size=size, ratio=ratio, splines=True, fixedsize=True,
                      bgcolor=&#39;gray95&#39;, pad=.5, labelfloat=True)
         g.add_nodes_from((i, dict(tooltip=cls._tooltip(i, map_),
-                                  pos=&#39;{},{}!&#39;.format(size*x, size*y),
+                                  pos=&#39;{},{}!&#39;.format(size * x, size * y),
                                   shape=&#39;circle&#39;,
                                   label=&#39;&#39;,
                                   style=&#39;filled&#39;,
@@ -248,7 +344,26 @@ class Map:
 
     @property
     def to_graph(self):
+        &#34;&#34;&#34;`nx.Graph` -- an undirected graph of the map, giving access to
+        [networkx](https://networkx.github.io/documentation/stable/index.html) graph algorithms.
+
+        Note that the graph is created from scratch each time, so the calling code may freely
+        modify it.
+        &#34;&#34;&#34;
         return _View.map_to_graph(self)
+
+    @property
+    def adjacency_matrix(self):
+        &#34;&#34;&#34;Convert the graphs `edge set` into an adjacency matix.
+
+        returns -- `np.array(N x X, dtype=bool)` -- an adjacency matrix (i.e. `m[2,3] is True`
+                   means that territories 2 &amp; 3 are connected
+        &#34;&#34;&#34;
+        adj = np.zeros((self.n_territories, self.n_territories), dtype=np.bool)
+        for row, edges in enumerate(self.edges):
+            adj[row, list(edges)] = True
+        assert (adj.T == adj).all()
+        return adj
 
     @property
     def n_territories(self):
@@ -271,7 +386,7 @@ class Map:
         d = json.load(f)
         continent_names, continent_values = zip(*d[&#39;continents&#39;])
         territory_names, continents_, edges_ = zip(*d[&#39;territories&#39;])
-        initial_armies = {idx+2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
+        initial_armies = {idx + 2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
         layout = [tuple(d[&#39;layout&#39;].get(t, [])) for t in territory_names] if &#39;layout&#39; in d else None  # TODO
         return cls(name=d[&#39;name&#39;],
                    continent_names=continent_names,
@@ -552,8 +667,10 @@ Event.__doc__ = &#34;&#34;&#34;A decision made by an agent in the game.
 
 Events are generated when iterating through a `Game`, for example:
 
-    for event in game:
-        print(event)
+```python
+for event in game:
+    print(event)
+```
 
 Events are generated for each method call on each `Agent` instance in the game, in other words every
 time any agent is asked to make a decision.
@@ -629,6 +746,7 @@ class Agent:
     ![Agent method flow](img/agent_flow.svg)
 
      - The game sets up the map, assigns starting territories randomly to each player.
+     - Game calls `start_game` (optional override) to allow the Agent to set itself up
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
        until enough initial armies have been placed.
      - For each turn, game:
@@ -641,6 +759,17 @@ class Agent:
     def __repr__(self):
         &#34;&#34;&#34;Simplified string identifying the agent.&#34;&#34;&#34;
         return &#39;{}@{:08x}&#39;.format(type(self).__name__, id(self) &amp; 0xffffffff)
+
+    def start_game(self, state):
+        &#34;&#34;&#34;(Optional override) called once before the start of a game, allowing the agent to prepare.
+
+        This is called after initial territories have been allocated, but before any agent has placed
+        armies on the map. In particular, any information in `state.map` (a `Map`) will stay the same
+        until the next game (and therefore the next `start_game`).
+
+        `state` -- `PlayerState`
+        &#34;&#34;&#34;
+        pass
 
     def place(self, state):
         &#34;&#34;&#34;Place a single army on one of your territories in the world (during the initial placement phase).
@@ -772,6 +901,9 @@ class _ValidatingAgent(Agent):
     def act(self, state, earned_card):
         action = self.agent.act(state, earned_card)
         if action is not None:  # Attack or Move
+            if action.count &lt;= 0:
+                raise self._error(&#39;cannot attack/move with {} armies (&lt;= 0) for {}&#39;,
+                                  action.count, action)
             if state.world.armies[action.from_] &lt;= action.count:
                 raise self._error(&#39;insufficient armies to attack/move ({}) for {}&#39;,
                                   state.world.armies[action.from_], action)
@@ -876,12 +1008,18 @@ def _placement_phase(world, agents_and_states, rand):
     if world.map.max_players &lt; n_players:
         raise ValueError(&#39;Too many players for map &#34;{}&#34; ({}, max: {})&#39;.format(
             world.map.name, n_players, world.map.max_players))
+
+    start_game_called = False
     for _ in range(world.map.initial_armies[world.n_players - world.has_neutral]):
         for agent, state in placement_order:
             if empty_territories:
                 placement = empty_territories.pop()
                 assert world.armies[placement] == 0
             else:
+                if not start_game_called:
+                    for a, s in placement_order:
+                        a.start_game(s)
+                    start_game_called = True
                 placement = _ValidatingAgent(agent).place(state)
                 yield world._add_event(Event(agent, state, &#39;place&#39;, {}, placement))
             world.owners[placement] = state.player_index
@@ -1053,15 +1191,19 @@ class Game:
     To _watch_ a game, use `Game.start()`, and use the fact that **a Game is an iterator(`Event`)**,
     for example:
 
-        for event in Game.start(map, [agent_a, agent_b]):
-            if event.agent is agent_a and event.method == &#39;act&#39;:
-                print(event.state, event.result)
+    ```python
+    for event in Game.start(map, [agent_a, agent_b]):
+        if event.agent is agent_a and event.method == &#39;act&#39;:
+            print(event.state, event.result)
+    ```
 
     Some other useful ways of using Game as an iterator:
 
-        event = next(game)   # step through manually
+    ```python
+    event = next(game)   # step through manually
 
-        event = next(e for e in game if e.agent is agent_a)   # find the next matching action
+    event = game.next_event(method=&#39;reinforce&#39;, player_index=0)   # find the next matching action
+    ```
     &#34;&#34;&#34;
     def __init__(self, world, agents_and_states, rand):
         self.world = world
@@ -1238,7 +1380,7 @@ class TournamentResult:
 
 
 class Tournament:
-    &#34;&#34;&#34;Utilities to running simple tournaments (multiple games).&#34;&#34;&#34;
+    &#34;&#34;&#34;Run simple tournaments (multiple games, in parallel).&#34;&#34;&#34;
     class _Runner:
         def __init__(self, map, agents):
             self.map = map
@@ -1475,6 +1617,7 @@ in the following pattern:
 <img alt="Agent method flow" src="img/agent_flow.svg"></p>
 <ul>
 <li>The game sets up the map, assigns starting territories randomly to each player.</li>
+<li>Game calls <code>start_game</code> (optional override) to allow the Agent to set itself up</li>
 <li>Game calls <code>place</code> repeatedly (for each player in turn) to place a single army on an owned territory,
 until enough initial armies have been placed.</li>
 <li>
@@ -1497,6 +1640,7 @@ until enough initial armies have been placed.</li>
     ![Agent method flow](img/agent_flow.svg)
 
      - The game sets up the map, assigns starting territories randomly to each player.
+     - Game calls `start_game` (optional override) to allow the Agent to set itself up
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
        until enough initial armies have been placed.
      - For each turn, game:
@@ -1509,6 +1653,17 @@ until enough initial armies have been placed.</li>
     def __repr__(self):
         &#34;&#34;&#34;Simplified string identifying the agent.&#34;&#34;&#34;
         return &#39;{}@{:08x}&#39;.format(type(self).__name__, id(self) &amp; 0xffffffff)
+
+    def start_game(self, state):
+        &#34;&#34;&#34;(Optional override) called once before the start of a game, allowing the agent to prepare.
+
+        This is called after initial territories have been allocated, but before any agent has placed
+        armies on the map. In particular, any information in `state.map` (a `Map`) will stay the same
+        until the next game (and therefore the next `start_game`).
+
+        `state` -- `PlayerState`
+        &#34;&#34;&#34;
+        pass
 
     def place(self, state):
         &#34;&#34;&#34;Place a single army on one of your territories in the world (during the initial placement phase).
@@ -1770,6 +1925,29 @@ pre-plan of multiple actions, if needed.</em></p>
     raise NotImplementedError</code></pre>
 </details>
 </dd>
+<dt id="preem.Agent.start_game"><code class="name flex">
+<span>def <span class="ident">start_game</span></span>(<span>self, state)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>(Optional override) called once before the start of a game, allowing the agent to prepare.</p>
+<p>This is called after initial territories have been allocated, but before any agent has placed
+armies on the map. In particular, any information in <code>state.map</code> (a <a title="preem.Map" href="#preem.Map"><code>Map</code></a>) will stay the same
+until the next game (and therefore the next <code>start_game</code>).</p>
+<p><code>state</code> &ndash; <a title="preem.PlayerState" href="#preem.PlayerState"><code>PlayerState</code></a></p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def start_game(self, state):
+    &#34;&#34;&#34;(Optional override) called once before the start of a game, allowing the agent to prepare.
+
+    This is called after initial territories have been allocated, but before any agent has placed
+    armies on the map. In particular, any information in `state.map` (a `Map`) will stay the same
+    until the next game (and therefore the next `start_game`).
+
+    `state` -- `PlayerState`
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 <dt id="preem.Attack"><code class="flex name class">
@@ -1828,10 +2006,10 @@ If a player knocks out another, the victor claims all of the defeated player's c
 <dd>
 <section class="desc"><p>A decision made by an agent in the game.</p>
 <p>Events are generated when iterating through a <a title="preem.Game" href="#preem.Game"><code>Game</code></a>, for example:</p>
-<pre><code>for event in game:
+<pre><code class="python">for event in game:
     print(event)
 </code></pre>
-<p>Events are generated for each method call on each <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> instance in the game, in other words every
+<p>Events are generated for each method call on each <code>Agent</code> instance in the game, in other words every
 time any agent is asked to make a decision.</p>
 <p>Each event is emitted by the game before it has been executed, so <code>state</code> is given as it
 is when the <code>agent</code> made the decision (e.g. if <code>result is Attack</code>, then <code>state</code> is the state before the
@@ -1950,7 +2128,7 @@ makes a random redemption).</p>
 <h3>Methods</h3>
 <dl>
 <dt id="preem.FallbackAgent.__init__"><code class="name flex">
-<span>def <span class="ident">__init__</span></span>(<span>self, agent, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;)</span>
+<span>def <span class="ident">__init__</span></span>(<span>self, agent, rand=&lt;module &#39;random&#39; from &#39;/usr/lib/python3.6/random.py&#39;&gt;)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Create a fallback agent, warns &amp; then fixes erroneous <a title="preem.Agent" href="#preem.Agent"><code>Agent</code></a> responses.</p>
@@ -1979,6 +2157,7 @@ makes a random redemption).</p>
 <li><code><a title="preem.Agent.place" href="#preem.Agent.place">place</a></code></li>
 <li><code><a title="preem.Agent.redeem" href="#preem.Agent.redeem">redeem</a></code></li>
 <li><code><a title="preem.Agent.reinforce" href="#preem.Agent.reinforce">reinforce</a></code></li>
+<li><code><a title="preem.Agent.start_game" href="#preem.Agent.start_game">start_game</a></code></li>
 </ul>
 </li>
 </ul>
@@ -1991,14 +2170,14 @@ makes a random redemption).</p>
 <p>To <em>play</em> a game &amp; get only the final outcome see <a title="preem.Game.play" href="#preem.Game.play"><code>Game.play()</code></a>.</p>
 <p>To <em>watch</em> a game, use <a title="preem.Game.start" href="#preem.Game.start"><code>Game.start()</code></a>, and use the fact that <strong>a Game is an iterator(<a title="preem.Event" href="#preem.Event"><code>Event</code></a>)</strong>,
 for example:</p>
-<pre><code>for event in Game.start(map, [agent_a, agent_b]):
+<pre><code class="python">for event in Game.start(map, [agent_a, agent_b]):
     if event.agent is agent_a and event.method == 'act':
         print(event.state, event.result)
 </code></pre>
 <p>Some other useful ways of using Game as an iterator:</p>
-<pre><code>event = next(game)   # step through manually
+<pre><code class="python">event = next(game)   # step through manually
 
-event = next(e for e in game if e.agent is agent_a)   # find the next matching action
+event = game.next_event(method='reinforce', player_index=0)   # find the next matching action
 </code></pre></section>
 <details class="source">
 <summary>Source code</summary>
@@ -2010,15 +2189,19 @@ event = next(e for e in game if e.agent is agent_a)   # find the next matching a
     To _watch_ a game, use `Game.start()`, and use the fact that **a Game is an iterator(`Event`)**,
     for example:
 
-        for event in Game.start(map, [agent_a, agent_b]):
-            if event.agent is agent_a and event.method == &#39;act&#39;:
-                print(event.state, event.result)
+    ```python
+    for event in Game.start(map, [agent_a, agent_b]):
+        if event.agent is agent_a and event.method == &#39;act&#39;:
+            print(event.state, event.result)
+    ```
 
     Some other useful ways of using Game as an iterator:
 
-        event = next(game)   # step through manually
+    ```python
+    event = next(game)   # step through manually
 
-        event = next(e for e in game if e.agent is agent_a)   # find the next matching action
+    event = game.next_event(method=&#39;reinforce&#39;, player_index=0)   # find the next matching action
+    ```
     &#34;&#34;&#34;
     def __init__(self, world, agents_and_states, rand):
         self.world = world
@@ -2144,7 +2327,7 @@ event = next(e for e in game if e.agent is agent_a)   # find the next matching a
 <h3>Static methods</h3>
 <dl>
 <dt id="preem.Game.play"><code class="name flex">
-<span>def <span class="ident">play</span></span>(<span>cls, map, agents, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;)</span>
+<span>def <span class="ident">play</span></span>(<span>cls, map, agents, rand=&lt;module &#39;random&#39; from &#39;/usr/lib/python3.6/random.py&#39;&gt;)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Play a full game of Preeminence (without watching what goes on), and return the <a title="preem.GameResult" href="#preem.GameResult"><code>GameResult</code></a>.</p>
@@ -2172,7 +2355,7 @@ def play(cls, map, agents, rand=random):
 </details>
 </dd>
 <dt id="preem.Game.start"><code class="name flex">
-<span>def <span class="ident">start</span></span>(<span>cls, map, agents, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;)</span>
+<span>def <span class="ident">start</span></span>(<span>cls, map, agents, rand=&lt;module &#39;random&#39; from &#39;/usr/lib/python3.6/random.py&#39;&gt;)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Start a game of Preeminence.</p>
@@ -2206,7 +2389,7 @@ def start(cls, map, agents, rand=random):
 </details>
 </dd>
 <dt id="preem.Game.watch"><code class="name flex">
-<span>def <span class="ident">watch</span></span>(<span>cls, map, agents, video_path, rand=&lt;module &#39;random&#39; from &#39;/opt/conda/lib/python3.6/random.py&#39;&gt;, **video_args)</span>
+<span>def <span class="ident">watch</span></span>(<span>cls, map, agents, video_path, rand=&lt;module &#39;random&#39; from &#39;/usr/lib/python3.6/random.py&#39;&gt;, **video_args)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Watch a full game of Preeminence, rendering to and returning a video.</p>
@@ -2495,7 +2678,26 @@ See help(type(self)) for accurate signature.</p></section>
 
     @property
     def to_graph(self):
+        &#34;&#34;&#34;`nx.Graph` -- an undirected graph of the map, giving access to
+        [networkx](https://networkx.github.io/documentation/stable/index.html) graph algorithms.
+
+        Note that the graph is created from scratch each time, so the calling code may freely
+        modify it.
+        &#34;&#34;&#34;
         return _View.map_to_graph(self)
+
+    @property
+    def adjacency_matrix(self):
+        &#34;&#34;&#34;Convert the graphs `edge set` into an adjacency matix.
+
+        returns -- `np.array(N x X, dtype=bool)` -- an adjacency matrix (i.e. `m[2,3] is True`
+                   means that territories 2 &amp; 3 are connected
+        &#34;&#34;&#34;
+        adj = np.zeros((self.n_territories, self.n_territories), dtype=np.bool)
+        for row, edges in enumerate(self.edges):
+            adj[row, list(edges)] = True
+        assert (adj.T == adj).all()
+        return adj
 
     @property
     def n_territories(self):
@@ -2518,7 +2720,7 @@ See help(type(self)) for accurate signature.</p></section>
         d = json.load(f)
         continent_names, continent_values = zip(*d[&#39;continents&#39;])
         territory_names, continents_, edges_ = zip(*d[&#39;territories&#39;])
-        initial_armies = {idx+2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
+        initial_armies = {idx + 2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
         layout = [tuple(d[&#39;layout&#39;].get(t, [])) for t in territory_names] if &#39;layout&#39; in d else None  # TODO
         return cls(name=d[&#39;name&#39;],
                    continent_names=continent_names,
@@ -2577,7 +2779,7 @@ def load_file(cls, f):
     d = json.load(f)
     continent_names, continent_values = zip(*d[&#39;continents&#39;])
     territory_names, continents_, edges_ = zip(*d[&#39;territories&#39;])
-    initial_armies = {idx+2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
+    initial_armies = {idx + 2: count for idx, count in enumerate(d[&#39;initial_armies&#39;])}
     layout = [tuple(d[&#39;layout&#39;].get(t, [])) for t in territory_names] if &#39;layout&#39; in d else None  # TODO
     return cls(name=d[&#39;name&#39;],
                continent_names=continent_names,
@@ -2593,6 +2795,27 @@ def load_file(cls, f):
 </dl>
 <h3>Instance variables</h3>
 <dl>
+<dt id="preem.Map.adjacency_matrix"><code class="name">var <span class="ident">adjacency_matrix</span></code></dt>
+<dd>
+<section class="desc"><p>Convert the graphs <code>edge set</code> into an adjacency matix.</p>
+<p>returns &ndash; <code>np.array(N x X, dtype=bool)</code> &ndash; an adjacency matrix (i.e. <code>m[2,3] is True</code>
+means that territories 2 &amp; 3 are connected</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def adjacency_matrix(self):
+    &#34;&#34;&#34;Convert the graphs `edge set` into an adjacency matix.
+
+    returns -- `np.array(N x X, dtype=bool)` -- an adjacency matrix (i.e. `m[2,3] is True`
+               means that territories 2 &amp; 3 are connected
+    &#34;&#34;&#34;
+    adj = np.zeros((self.n_territories, self.n_territories), dtype=np.bool)
+    for row, edges in enumerate(self.edges):
+        adj[row, list(edges)] = True
+    assert (adj.T == adj).all()
+    return adj</code></pre>
+</details>
+</dd>
 <dt id="preem.Map.continent_names"><code class="name">var <span class="ident">continent_names</span></code></dt>
 <dd>
 <section class="desc"><p><code>[str]</code> &ndash; human-readable names for the map</p></section>
@@ -2665,11 +2888,20 @@ def n_territories(self):
 </dd>
 <dt id="preem.Map.to_graph"><code class="name">var <span class="ident">to_graph</span></code></dt>
 <dd>
-<section class="desc"></section>
+<section class="desc"><p><code>nx.Graph</code> &ndash; an undirected graph of the map, giving access to
+<a href="https://networkx.github.io/documentation/stable/index.html">networkx</a> graph algorithms.</p>
+<p>Note that the graph is created from scratch each time, so the calling code may freely
+modify it.</p></section>
 <details class="source">
 <summary>Source code</summary>
 <pre><code class="python">@property
 def to_graph(self):
+    &#34;&#34;&#34;`nx.Graph` -- an undirected graph of the map, giving access to
+    [networkx](https://networkx.github.io/documentation/stable/index.html) graph algorithms.
+
+    Note that the graph is created from scratch each time, so the calling code may freely
+    modify it.
+    &#34;&#34;&#34;
     return _View.map_to_graph(self)</code></pre>
 </details>
 </dd>
@@ -2855,11 +3087,11 @@ See help(type(self)) for accurate signature.</p></section>
 <span>class <span class="ident">Tournament</span></span>
 </code></dt>
 <dd>
-<section class="desc"><p>Utilities to running simple tournaments (multiple games).</p></section>
+<section class="desc"><p>Run simple tournaments (multiple games, in parallel).</p></section>
 <details class="source">
 <summary>Source code</summary>
 <pre><code class="python">class Tournament:
-    &#34;&#34;&#34;Utilities to running simple tournaments (multiple games).&#34;&#34;&#34;
+    &#34;&#34;&#34;Run simple tournaments (multiple games, in parallel).&#34;&#34;&#34;
     class _Runner:
         def __init__(self, map, agents):
             self.map = map
@@ -3311,7 +3543,9 @@ See help(type(self)) for accurate signature.</p></section>
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul></ul>
+<ul>
+<li><a href="#tips-tricks">Tips &amp; tricks</a></li>
+</ul>
 </div>
 <ul id="index">
 <li><h3><a href="#header-variables">Global variables</a></h3>
@@ -3339,6 +3573,7 @@ See help(type(self)) for accurate signature.</p></section>
 <li><code><a title="preem.Agent.place" href="#preem.Agent.place">place</a></code></li>
 <li><code><a title="preem.Agent.redeem" href="#preem.Agent.redeem">redeem</a></code></li>
 <li><code><a title="preem.Agent.reinforce" href="#preem.Agent.reinforce">reinforce</a></code></li>
+<li><code><a title="preem.Agent.start_game" href="#preem.Agent.start_game">start_game</a></code></li>
 </ul>
 </li>
 <li>
@@ -3401,6 +3636,7 @@ See help(type(self)) for accurate signature.</p></section>
 <h4><code><a title="preem.Map" href="#preem.Map">Map</a></code></h4>
 <ul class="two-column">
 <li><code><a title="preem.Map.__init__" href="#preem.Map.__init__">__init__</a></code></li>
+<li><code><a title="preem.Map.adjacency_matrix" href="#preem.Map.adjacency_matrix">adjacency_matrix</a></code></li>
 <li><code><a title="preem.Map.continent_names" href="#preem.Map.continent_names">continent_names</a></code></li>
 <li><code><a title="preem.Map.continent_values" href="#preem.Map.continent_values">continent_values</a></code></li>
 <li><code><a title="preem.Map.continents" href="#preem.Map.continents">continents</a></code></li>
