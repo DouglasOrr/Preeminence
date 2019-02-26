@@ -13168,7 +13168,7 @@ div#notebook {
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Hi! I&#39;m up-to-date as of: 2019-02-26 00:27:39.514287
+<pre>Hi! I&#39;m up-to-date as of: 2019-02-26 06:40:40.904094
 </pre>
 </div>
 </div>
@@ -13400,8 +13400,8 @@ value of next set: 4
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Your agent may choose not to redeem any cards, unless it owns 5 or more cards (see <code>state.cards</code>), in which case there must be a set, and it is an error not to return a set from <code>redeem</code>.</p>
-<blockquote><p><strong>Strategy point:</strong> during the game, the value of each set redeemed increases rapidly. Do you want to wait until the last possible moment to declare a set, so that it might be worth more, or is it more useful to get the armies sooner? How aggressively should I try to knock out another player, so that I can claim their cards? Does redeeming my cards early make me less of a target?</p>
+<p>Your agent may choose not to redeem any cards, unless it owns 5 or more cards (see <code>state.cards</code>), in which case there must be a set, and it must return a set from <code>redeem</code> (otherwise it is an error). You can only redeem a single set at a time.</p>
+<blockquote><p><strong>Strategy point:</strong> during the game, the value of each set redeemed increases rapidly (see <a href="https://douglasorr.github.io/Preeminence/#preem.value_of_set">P.value_of_set()</a>). Do you want to wait until the last possible moment to declare a set, so that it might be worth more, or is it more useful to get the armies sooner? How aggressively should I try to knock out another player, so that I can claim their cards? Does redeeming my cards early make me less of a target?</p>
 </blockquote>
 <h3 id="act"><code>act</code><a class="anchor-link" href="#act">&#182;</a></h3><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">act</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">earned_card</span><span class="p">):</span>
     <span class="n">possible_attacks</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">P</span><span class="o">.</span><span class="n">get_all_possible_attacks</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">]</span>
@@ -13412,7 +13412,7 @@ value of next set: 4
         <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">possible_moves</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">count</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">possible_moves</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="bp">None</span>
 </pre></div>
-<p><strong><code>act(state, earned_card)</code></strong> is probably the most important method for the agent. Here, your agent may attack adjacent enemy territories multiple times, then optionally make a end-of-turn move between two adjacent friendly territories. <code>act</code> can return an <code>Attack</code> (which will continue the turn after the attack has taken place), <code>Move</code> or <code>None</code> (both of which end the turn). Let's look at an attack:</p>
+<p><strong><code>act(state, earned_card)</code></strong> is probably the most important method for the agent. Here, your agent may attack adjacent enemy territories multiple times, then optionally make a end-of-turn move between two adjacent owned territories. <code>act</code> can return an <code>Attack</code> (which will continue the turn after the attack has taken place), <code>Move</code> or <code>None</code> (both of which end the turn). Let's look at an attack:</p>
 
 </div>
 </div>
@@ -13462,13 +13462,13 @@ value of next set: 4
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Note that our RandomAgent uses the helpers <a href="https://douglasorr.github.io/Preeminence/#preem.get_all_possible_attacks">P.get_all_possible_attacks()</a> and <a href="https://douglasorr.github.io/Preeminence/#preem.get_all_possible_moves">P.get_all_possible_moves()</a> to list all the possibilities. However, as you can see from the example above, all the information needed find allowed attacks is available through <code>state</code> (either in <code>state.world</code> or <code>state.world.map</code>) - you might find this more flexible.</p>
-<p>Attacks must be from a friendly to an adjacent enemy territory, and must have a maximum count less than the number of armies on that territory (as you are not allowed to leave a territory empty). When you attack, you roll <code>min(3, count)</code> dice, and the defender rolls <code>min(2, armies[to])</code> dice. The dice are paired from highest to lowest, and ties are broken in favour of the defender. Each winning dice conquers an army from the opponent. For example, when the attacker has 3 armies and the defender has 2, the possible outcomes are 1) defender loses two armies (if there are no defending armies left, the attacker moves in with <code>count</code> and now owns the territory); 2) each lose one army (attacker gets another chance to <code>act</code>, and is allowed to try again); 3) attacker loses two armies (likewise, they will get a chance to try again via <code>act</code> as long as they have enough armies remaining on <code>from_</code>).</p>
+<p>Our RandomAgent uses the helpers <a href="https://douglasorr.github.io/Preeminence/#preem.get_all_possible_attacks">P.get_all_possible_attacks()</a> and <a href="https://douglasorr.github.io/Preeminence/#preem.get_all_possible_moves">P.get_all_possible_moves()</a> to list all the possibilities. However, as you can see from the example above, all the information needed find allowed attacks is available through <code>state</code> (either in <code>state.world</code> or <code>state.world.map</code>) - you might find this more flexible.</p>
+<p>Attacks must be from an owned to an adjacent enemy territory, and must have a maximum count less than the number of armies on that territory (as you are not allowed to leave a territory empty). When you attack, you roll <code>min(3, count)</code> dice, and the defender rolls <code>min(2, armies[to])</code> dice. The dice are paired from highest to lowest, and ties are broken in favour of the defender. Each winning dice conquers an army from the opponent. For example, when the attacker has 3 armies and the defender has 2, the possible outcomes are 1) defender loses two armies (if there are no defending armies left, the attacker moves in with <code>count</code> and now owns the territory); 2) each lose one army (attacker gets another chance to <code>act</code>, and is allowed to try again); 3) attacker loses two armies (likewise, they will get a chance to try again via <code>act</code> as long as they have enough armies remaining on <code>from_</code>). See <a href="https://douglasorr.github.io/Preeminence/#preem.ATTACKING_ODDS">P.ATTACKING_ODDS</a> for details.</p>
 <p>As long as at least one attack in a turn has succeeded in conquering a territory, <code>earned_card is True</code> and after the turn the player is awarded an extra card from the deck. If your agent conquers the last territory belonging to a player, all of that players cards will be automatically transferred to your <code>state.cards</code>, and may be redeemed on the next turn as usual.</p>
-<p>Moves are very similar, but only a single move is possible per turn (at the end), and the destination must be an adjacent friendly territory.</p>
-<blockquote><p><strong>Strategy point:</strong> Early on the game, how desparate are you for cards? Will you fight against the odds (e.g. 1v1 or even 1v2, which favour the defender)? Later, we need to take care to make sure our armies are usable for attacks. If surrounded by friendly territories, your armies are <em>landlocked</em>, and all they can do is slowly move towards the enemy at one <em>move</em> per turn. However, on the frontier, they can <em>attack</em> and conquer multiple territories in a single turn.</p>
+<p>Moves are very similar, but only a single move is possible per turn (at the end), and the destination must be an adjacent owned territory.</p>
+<blockquote><p><strong>Strategy point:</strong> Early on the game, how desparate are you for cards? Will you fight against the odds (e.g. 1v1 or even 1v2, which favour the defender)? Later, we need to take care to make sure our armies are usable for attacks. If surrounded by owned territories, your armies are <em>landlocked</em>, and all they can do is slowly move towards the enemy at one <em>move</em> per turn. However, on the frontier, they can <em>attack</em> and conquer multiple territories in a single turn.</p>
 </blockquote>
-<h2 id="Playing-a-full-game">Playing a full game<a class="anchor-link" href="#Playing-a-full-game">&#182;</a></h2><p>Now that we've defined and understood our agent, let's play a full game:</p>
+<h2 id="Playing-a-full-game">Playing a full game<a class="anchor-link" href="#Playing-a-full-game">&#182;</a></h2><p>Now that we've defined, internalised &amp; comprehended our agent, let's play a full game:</p>
 
 </div>
 </div>
@@ -13498,7 +13498,7 @@ value of next set: 4
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>GameResult(winners={#1:RandomAgent@ec6f1e80}, eliminated=[#2:RandomAgent@ec6f1e80, #0:RandomAgent@ec6f1e80])</pre>
+<pre>GameResult(winners={#1:RandomAgent@38287438}, eliminated=[#0:RandomAgent@38287438, #2:RandomAgent@38287438])</pre>
 </div>
 
 </div>
@@ -13589,7 +13589,7 @@ player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=5)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
-GameResult(winners={#1:RandomAgent@ec291e10}, eliminated=[#0:RandomAgent@ec291e10])
+GameResult(winners={#1:RandomAgent@38287d30}, eliminated=[#0:RandomAgent@38287d30])
 </pre>
 </div>
 </div>
@@ -13602,10 +13602,12 @@ GameResult(winners={#1:RandomAgent@ec291e10}, eliminated=[#0:RandomAgent@ec291e1
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>Here we've used the fact that <code>Game</code> is <em>iterable</em> to view the whole sequence of events (rather than using <code>next_event()</code> which searches for the next matching event). Also note that <code>player_index</code> (also used to indicate the winner) is simply an index into the original <code>agents</code> array.</p>
-<p><em>Note that, as our first 1v1 game, an extra agent has appeared, called <code>Neutral</code>. The Neutral agent isn't too special - they just place their armies randomly at the beginning, then never reinforce, redeem or act - just sitting there waiting for you to attack!)</em></p>
+<p><em>Note that, as our first 1v1 game, an extra agent has appeared (called <code>Neutral</code>). The Neutral agent isn't too special - they just place their armies randomly at the beginning, then never reinforce, redeem or act - just sitting there waiting for you to attack!)</em></p>
 <blockquote><p><strong>Strategy point:</strong> is attacking <code>Neutral</code> any less valuable than attacking your opponent? You can still gain cards, territories and continents, but you're not making your enemy weaker at the same time.</p>
 </blockquote>
 <h2 id="Over-to-you...">Over to you...<a class="anchor-link" href="#Over-to-you...">&#182;</a></h2><p>Why not try overriding <code>act</code> or <code>reinforce</code> from <code>RandomAgent</code>? Can you make it better (or worse)? Adapt the subclass below &amp; re-evaluate.</p>
+<blockquote><p>E.g. one simple tweak would be to only reinforce territories that are adjacent to enemy territories (but note that it might not help win the specific game below).</p>
+</blockquote>
 
 </div>
 </div>
@@ -13687,7 +13689,7 @@ RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
-GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71def0])
+GameResult(winners={#1:RandomAgent@382b2668}, eliminated=[#0:NewRandomAgent@382b2b70])
 </pre>
 </div>
 </div>
@@ -13699,7 +13701,7 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="More-debugging-tools---looking-at-the-world">More debugging tools - looking at the world<a class="anchor-link" href="#More-debugging-tools---looking-at-the-world">&#182;</a></h2><p>Whether stepping through, or analysing complete games, these text logs can be a bit cumbersome, so let's look at them visually (you're going to hate me for not showing you this already, but I had my reasons...)</p>
+<h2 id="More-debugging-tools---looking-at-the-world">More debugging tools - looking at the world<a class="anchor-link" href="#More-debugging-tools---looking-at-the-world">&#182;</a></h2><p>Whether stepping through, or analysing complete games, these text logs can be a bit cumbersome, so let's look at them visually (you're going to be cross that I didn't you this already, but I had my reasons...)</p>
 
 </div>
 </div>
@@ -13709,8 +13711,8 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <div class="prompt input_prompt">In&nbsp;[10]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<span class="n">game</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">21</span><span class="p">)</span>
+<span class="n">game</span> <span class="o">=</span> <span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">NewRandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()])</span>
 </pre></div>
 
     </div>
@@ -13754,16 +13756,16 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <!-- 0 -->
 <g id="node1" class="node">
 <title>0</title>
-<g id="a_node1"><a xlink:title="#0: L1&#10;#2: Neutral&#10;1 armies">
-<ellipse fill="#666666" stroke="#000000" stroke-width="0" cx="5" cy="-60.7636" rx="5" ry="5"/>
+<g id="a_node1"><a xlink:title="#0: L1&#10;#1: RandomAgent@38237ba8&#10;1 armies">
+<ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="5" cy="-60.7636" rx="5" ry="5"/>
 </a>
 </g>
 </g>
 <!-- 1 -->
 <g id="node2" class="node">
 <title>1</title>
-<g id="a_node2"><a xlink:title="#1: L2&#10;#0: RandomAgent@f07d0978&#10;1 armies">
-<ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="5" cy="-231.818" rx="5" ry="5"/>
+<g id="a_node2"><a xlink:title="#1: L2&#10;#2: Neutral&#10;1 armies">
+<ellipse fill="#666666" stroke="#000000" stroke-width="0" cx="5" cy="-231.818" rx="5" ry="5"/>
 </a>
 </g>
 </g>
@@ -13775,8 +13777,8 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <!-- 2 -->
 <g id="node3" class="node">
 <title>2</title>
-<g id="a_node3"><a xlink:title="#2: L3&#10;#2: Neutral&#10;1 armies">
-<ellipse fill="#666666" stroke="#000000" stroke-width="0" cx="178.555" cy="-146.2908" rx="5" ry="5"/>
+<g id="a_node3"><a xlink:title="#2: L3&#10;#0: NewRandomAgent@38287d30&#10;1 armies">
+<ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="178.555" cy="-146.2908" rx="5" ry="5"/>
 </a>
 </g>
 </g>
@@ -13793,7 +13795,7 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <!-- 3 -->
 <g id="node4" class="node">
 <title>3</title>
-<g id="a_node4"><a xlink:title="#3: R1&#10;#1: RandomAgent@f07d0978&#10;1 armies">
+<g id="a_node4"><a xlink:title="#3: R1&#10;#1: RandomAgent@38237ba8&#10;1 armies">
 <ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="409.9617" cy="-146.2908" rx="5" ry="5"/>
 </a>
 </g>
@@ -13806,8 +13808,8 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <!-- 4 -->
 <g id="node5" class="node">
 <title>4</title>
-<g id="a_node5"><a xlink:title="#4: R2&#10;#1: RandomAgent@f07d0978&#10;1 armies">
-<ellipse fill="#698b22" stroke="#ee0000" stroke-width="4" cx="583.5166" cy="-231.818" rx="5" ry="5"/>
+<g id="a_node5"><a xlink:title="#4: R2&#10;#0: NewRandomAgent@38287d30&#10;1 armies">
+<ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="583.5166" cy="-231.818" rx="5" ry="5"/>
 </a>
 </g>
 </g>
@@ -13819,8 +13821,8 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <!-- 5 -->
 <g id="node6" class="node">
 <title>5</title>
-<g id="a_node6"><a xlink:title="#5: R3&#10;#0: RandomAgent@f07d0978&#10;1 armies">
-<ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="583.5166" cy="-60.7636" rx="5" ry="5"/>
+<g id="a_node6"><a xlink:title="#5: R3&#10;#2: Neutral&#10;1 armies">
+<ellipse fill="#666666" stroke="#ee0000" stroke-width="4" cx="583.5166" cy="-60.7636" rx="5" ry="5"/>
 </a>
 </g>
 </g>
@@ -13837,12 +13839,12 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <!-- legend -->
 <g id="node7" class="node">
 <title>legend</title>
-<text text-anchor="start" x="124.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
-<text text-anchor="start" x="187.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">Rando..d0978</text>
-<text text-anchor="start" x="287.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="297.7583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#698b22">Rando..d0978</text>
-<text text-anchor="start" x="397.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="407.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#666666">Neutral</text>
+<text text-anchor="start" x="122.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
+<text text-anchor="start" x="185.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">NewRa..87d30</text>
+<text text-anchor="start" x="291.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
+<text text-anchor="start" x="301.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#698b22">Rando..37ba8</text>
+<text text-anchor="start" x="400.2583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
+<text text-anchor="start" x="410.2583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#666666">Neutral</text>
 </g>
 </g>
 </svg>
@@ -13859,7 +13861,7 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>The same information as we saw before can be visualised in this way. On many browsers, you should be able to hover over the image to see a tooltip with more info. Note that <code>Event</code>, <code>PlayerState</code>, <code>World</code> and <code>Map</code> can all be visualised in this way (showing less information respectively).</p>
-<p><em>Hint: if you would like better agent names on the legend of your visualisations, override <code>__repr__(self)</code> in your agent class</em></p>
+<p><em>Hint: if you would like better agent names on the legend of your visualisations, override <code>__repr__(self)</code> in your agent class.</em></p>
 <p>Additionally (although this is slow, so probably not part of your main developing loop), you can stitch together the images into a video:</p>
 
 </div>
@@ -13870,8 +13872,8 @@ GameResult(winners={#1:RandomAgent@ec71df60}, eliminated=[#0:NewRandomAgent@ec71
 <div class="prompt input_prompt">In&nbsp;[12]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">()]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;tutorial_mini.mp4&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">144</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">21</span><span class="p">)</span>
+<span class="n">P</span><span class="o">.</span><span class="n">Game</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/mini.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">NewRandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()],</span> <span class="s1">&#39;tutorial_mini.mp4&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">144</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -14775,7 +14777,7 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <div class="prompt input_prompt">In&nbsp;[15]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">Tournament</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/classic.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()])</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">Tournament</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/classic.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">NewRandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()])</span>
 </pre></div>
 
     </div>
@@ -14795,13 +14797,13 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <div class="output_html rendered_html output_subarea output_execute_result">
 <table>
 <thead>
-<tr><th style="text-align: right;">  player index</th><th>name                </th><th style="text-align: right;">  win rate</th></tr>
+<tr><th style="text-align: right;">  player index</th><th>name                   </th><th style="text-align: right;">  win rate</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: right;">             1</td><td>RandomAgent@c8277438</td><td style="text-align: right;">     58.3%</td></tr>
-<tr><td style="text-align: right;">             0</td><td>RandomAgent@c82773c8</td><td style="text-align: right;">     51.7%</td></tr>
-<tr><td style="text-align: right;">             3</td><td>RandomAgent@c8277630</td><td style="text-align: right;">     51.7%</td></tr>
-<tr><td style="text-align: right;">             2</td><td>RandomAgent@c82772b0</td><td style="text-align: right;">     38.3%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>RandomAgent@11dd4470   </td><td style="text-align: right;">     66.7%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>NewRandomAgent@130c8898</td><td style="text-align: right;">     50.0%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>RandomAgent@11dd4048   </td><td style="text-align: right;">     50.0%</td></tr>
+<tr><td style="text-align: right;">             2</td><td>RandomAgent@11dd42b0   </td><td style="text-align: right;">     33.3%</td></tr>
 </tbody>
 </table>
 </div>
@@ -14817,8 +14819,8 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <div class="prompt input_prompt">In&nbsp;[16]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">Tournament</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/classic.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()],</span>
-                 <span class="n">players_per_game</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">rounds</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">P</span><span class="o">.</span><span class="n">Tournament</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;maps/classic.json&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">NewRandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">(),</span> <span class="n">RandomAgent</span><span class="p">()],</span>
+                 <span class="n">players_per_game</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">rounds</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -14838,13 +14840,13 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <div class="output_html rendered_html output_subarea output_execute_result">
 <table>
 <thead>
-<tr><th style="text-align: right;">  player index</th><th>name                </th><th style="text-align: right;">  win rate</th></tr>
+<tr><th style="text-align: right;">  player index</th><th>name                   </th><th style="text-align: right;">  win rate</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: right;">             0</td><td>RandomAgent@c8277240</td><td style="text-align: right;">     30.8%</td></tr>
-<tr><td style="text-align: right;">             3</td><td>RandomAgent@c82771d0</td><td style="text-align: right;">     28.1%</td></tr>
-<tr><td style="text-align: right;">             1</td><td>RandomAgent@c8277320</td><td style="text-align: right;">     23.6%</td></tr>
-<tr><td style="text-align: right;">             2</td><td>RandomAgent@c82774e0</td><td style="text-align: right;">     17.5%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>RandomAgent@11dd4630   </td><td style="text-align: right;">     28.5%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>NewRandomAgent@11dd44a8</td><td style="text-align: right;">     27.5%</td></tr>
+<tr><td style="text-align: right;">             2</td><td>RandomAgent@11dd4748   </td><td style="text-align: right;">     23.3%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>RandomAgent@11dd4208   </td><td style="text-align: right;">     20.7%</td></tr>
 </tbody>
 </table>
 </div>
@@ -14859,7 +14861,7 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Getting-serious...">Getting serious...<a class="anchor-link" href="#Getting-serious...">&#182;</a></h2><p>Now you've seen all that you need to get going writing the most unbeatable agent - good luck! Why don't you head over to a <a href="Working.ipynb">fresh notebook</a> that's a bit less cluttered - that link will take you to a convenient skeleton.</p>
-<p><em>Thanks for following through; have fun!</em></p>
+<p><em>Thanks for following through the tutorial; have fun!</em></p>
 
 </div>
 </div>
