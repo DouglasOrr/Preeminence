@@ -1,6 +1,7 @@
 NAME=${USER}-preem
 PORT=8888
 
+docker pull douglasorr/preeminence
 docker rm -f ${NAME} &> /dev/null || true
 docker run -d --name ${NAME} -p ${PORT}:${PORT} -e PYTHONPATH=/preem -v `pwd`:/preem -w /preem douglasorr/preeminence jupyter notebook --allow-root --port ${PORT} --ip 0.0.0.0 > /dev/null
 

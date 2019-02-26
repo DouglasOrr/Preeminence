@@ -25,7 +25,7 @@ def docker(cmd, docker_detach=False, docker_args='', **kwargs):
        ' {docker_args}'
        ' preem {command}',
        command=docker_cmd,
-       mode='-d' if docker_detach else ('--rm -i' + ' -t' if is_tty else ''),
+       mode='-d' if docker_detach else ('--rm -i' + (' -t' if is_tty else '')),
        docker_args=docker_args)
 
 
