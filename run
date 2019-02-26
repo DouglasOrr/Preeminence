@@ -19,12 +19,13 @@ def sh(cmd, **kwargs):
 
 def docker(cmd, docker_detach=False, docker_args='', **kwargs):
     docker_cmd = cmd.format(**kwargs)
+    is_tty = os.isatty(sys.stdin.fileno())
     sh('docker run {mode}'
        ' -v `pwd`:/work -w /work -e PYTHONPATH=/work'
        ' {docker_args}'
        ' preem {command}',
        command=docker_cmd,
-       mode='-d' if docker_detach else '--rm -it',
+       mode='-d' if docker_detach else ('--rm -i' + ' -t' if is_tty else ''),
        docker_args=docker_args)
 
 
@@ -56,6 +57,8 @@ def docs(examples, pydoc_only):
     os.rename('docs/preem.html', 'docs/index.html')
     if not pydoc_only:
         docker('jupyter nbconvert --execute --to html Tutorial.ipynb --output-dir docs --output tutorial')
+        docker('jupyter nbconvert --execute --to slides --SlidesExporter.reveal_theme=white'
+               ' Intro.ipynb --output-dir docs --output intro')
         docker('python3 render_doc_examples.py {}'.format('--force' if examples else ''))
 
 
