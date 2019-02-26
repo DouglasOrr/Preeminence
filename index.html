@@ -751,15 +751,14 @@ class Agent:
     in the following pattern:
     ![Agent method flow](img/agent_flow.svg)
 
-     - The game sets up the map, assigns starting territories randomly to each player.
-     - Game calls `start_game` (optional override) to allow the Agent to set itself up
+     - The game sets up the map, assigns starting territories randomly to each player,
+       - then calls `start_game` (optional override) to allow the Agent to set itself up.
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
        until enough initial armies have been placed.
      - For each turn, game:
-
-        - calls `redeem` to decide which, if any, cards should be declared for bonus armies,
-        - calls `reinforce` to place multiple armies on one or more owned territories,
-        - calls `act` repeatedly, until it returns a turn-ending action (such as a move).
+       - calls `redeem` to decide if any cards should be declared for bonus armies,
+       - calls `reinforce` to place multiple armies on one or more owned territories,
+       - calls `act` repeatedly, until it returns a turn-ending action (such as a move).
     &#34;&#34;&#34;
 
     def __repr__(self):
@@ -1622,18 +1621,14 @@ e.g. if <code>Move(2, 5, count=4)</code> is returned, then trivially
 in the following pattern:
 <img alt="Agent method flow" src="img/agent_flow.svg"></p>
 <ul>
-<li>The game sets up the map, assigns starting territories randomly to each player.</li>
-<li>Game calls <code>start_game</code> (optional override) to allow the Agent to set itself up</li>
+<li>The game sets up the map, assigns starting territories randomly to each player,</li>
+<li>then calls <code>start_game</code> (optional override) to allow the Agent to set itself up.</li>
 <li>Game calls <code>place</code> repeatedly (for each player in turn) to place a single army on an owned territory,
 until enough initial armies have been placed.</li>
-<li>
-<p>For each turn, game:</p>
-<ul>
-<li>calls <code>redeem</code> to decide which, if any, cards should be declared for bonus armies,</li>
+<li>For each turn, game:</li>
+<li>calls <code>redeem</code> to decide if any cards should be declared for bonus armies,</li>
 <li>calls <code>reinforce</code> to place multiple armies on one or more owned territories,</li>
 <li>calls <code>act</code> repeatedly, until it returns a turn-ending action (such as a move).</li>
-</ul>
-</li>
 </ul></section>
 <details class="source">
 <summary>Source code</summary>
@@ -1645,15 +1640,14 @@ until enough initial armies have been placed.</li>
     in the following pattern:
     ![Agent method flow](img/agent_flow.svg)
 
-     - The game sets up the map, assigns starting territories randomly to each player.
-     - Game calls `start_game` (optional override) to allow the Agent to set itself up
+     - The game sets up the map, assigns starting territories randomly to each player,
+       - then calls `start_game` (optional override) to allow the Agent to set itself up.
      - Game calls `place` repeatedly (for each player in turn) to place a single army on an owned territory,
        until enough initial armies have been placed.
      - For each turn, game:
-
-        - calls `redeem` to decide which, if any, cards should be declared for bonus armies,
-        - calls `reinforce` to place multiple armies on one or more owned territories,
-        - calls `act` repeatedly, until it returns a turn-ending action (such as a move).
+       - calls `redeem` to decide if any cards should be declared for bonus armies,
+       - calls `reinforce` to place multiple armies on one or more owned territories,
+       - calls `act` repeatedly, until it returns a turn-ending action (such as a move).
     &#34;&#34;&#34;
 
     def __repr__(self):
