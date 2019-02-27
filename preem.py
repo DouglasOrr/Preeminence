@@ -270,6 +270,15 @@ class Map:
         self.layout = layout
         """`[(float, float)] or None` -- indexed by territory ID, (x,y) positions"""
 
+        assert len(self.continent_names) == len(self.continent_values)
+        assert len(self.territory_names) == len(self.continents) == len(self.edges)
+        for src, dests in enumerate(self.edges):
+            for dest in dests:
+                assert src in self.edges[dest], \
+                    'all edges are symmetric (#{}:{} -> #{}:{})'.format(
+                        src, self.territory_names[src],
+                        dest, self.territory_names[dest])
+
     def __repr__(self):
         return 'Map[name={}, territories={}, continents={}]'.format(
             self.name, self.n_territories, self.n_continents)
@@ -715,7 +724,9 @@ class Agent:
 
     def __repr__(self):
         """Simplified string identifying the agent."""
-        return '{}@{:08x}'.format(type(self).__name__, id(self) & 0xffffffff)
+        cls = type(self)
+        return '{}.{}@{:08x}'.format(
+            cls.__module__, cls.__qualname__, id(self) & 0xffffffff)
 
     def start_game(self, state):
         """(Optional override) called once before the start of a game, allowing the agent to prepare.

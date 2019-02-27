@@ -571,13 +571,7 @@ def test_tournament():
 # Functional tests
 
 
-MAPS = [
-    'tiny3',
-    'tiny4',
-    'mini',
-    'quad',
-    'classic',
-]
+MAPS = [os.path.splitext(f)[0] for f in os.listdir('maps/')]
 
 
 @pytest.mark.parametrize('map_name', MAPS)
