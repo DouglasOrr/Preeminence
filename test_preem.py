@@ -16,9 +16,52 @@ import agents.random_agent as random_agent
 
 def test_game_result():
     player_names = ['zero', 'one', 'two', 'three']
-    assert P.GameResult([1, 2], [3, 0], player_names).outright_winner is None
-    assert P.GameResult([2], [3, 1, 0], player_names).outright_winner == 2
-    assert 'winners={#2:two}' in str(P.GameResult([2], [3, 1, 0], player_names))
+    assert P.GameResult({1, 2}, [3, 0], player_names).outright_winner is None
+    assert P.GameResult({2}, [3, 1, 0], player_names).outright_winner == 2
+
+    result = P.GameResult({2}, [3, 1, 0], player_names)
+    assert 'winners={#2:two}' in str(result)
+
+    reloaded = P.GameResult._from_json(result._to_json())
+    assert reloaded.winners == result.winners
+    assert reloaded.eliminated == result.eliminated
+
+
+def test_tournament_result_1v1():
+    player_names = ['zero', 'one', 'two']
+    result = P.TournamentResult(player_names,
+                                [P.GameResult({0, 1}, [], player_names),
+                                 P.GameResult({1}, [2], player_names),
+                                 P.GameResult({2}, [0], player_names)])
+    assert result.win_rate == [0.25, 0.75, 0.5]
+    np.testing.assert_allclose(result.pairwise_win_rate,
+                               [[0.0, 0.5, 0.0],
+                                [0.5, 0.0, 1.0],
+                                [1.0, 0.0, 0.0]])
+
+
+def test_tournament_result_4_for_all(tmpdir):
+    player_names = ['zero', 'one', 'two', 'three']
+    result = P.TournamentResult(player_names,
+                                [P.GameResult({0, 1, 3}, [2], player_names),
+                                 P.GameResult({1, 3}, [2, 0], player_names),
+                                 P.GameResult({1}, [2, 0, 3], player_names),
+                                 P.GameResult({1}, [2, 0, 3], player_names)])
+    path = tmpdir.join('result.json')
+    result.save(str(path))
+    path.check(file=1)
+    result_reloaded = P.TournamentResult.load(str(path))
+    for r in [result, result_reloaded]:
+        assert r.n_players == 4
+        assert r.player_names == player_names
+        assert r.win_rate == [1/12,
+                              (1/3 + 1/2 + 1 + 1) / 4,
+                              0,
+                              (1/3 + 1/2) / 4]
+        assert r.ranked_players == [(1, 'one', (1/3 + 1/2 + 1 + 1) / 4),
+                                    (3, 'three', (1/3 + 1/2) / 4),
+                                    (0, 'zero', 1/12),
+                                    (2, 'two', 0)]
 
 
 def test_get_matching_sets():  # implicitly tests is_matching_set
@@ -85,6 +128,10 @@ def test_deck():
         assert deck.draw() in top6
     with pytest.raises(ValueError):
         deck.draw()
+
+
+def test_long_class_name():
+    assert P._long_class_name(random_agent.Agent()) == 'agents.random_agent.Agent'
 
 
 # Core data tests
@@ -559,7 +606,9 @@ def test_tournament():
         pool_instance.map.side_effect = map
         game_cls.play.side_effect = _play
 
-        result = P.Tournament.run(map=map_, agents=agents, n_processes=7, rounds=20)
+        result = P.Tournament.run(map=map_, agents=agents,
+                                  agent_names=['ey', 'bee', 'sea'],
+                                  n_processes=7, rounds=20)
         assert result.win_rate == [0, 1, 0.5]
         assert re.search('bee.+sea.+ey', str(result))
         assert re.search('bee.+sea.+ey', result._repr_html_().replace('\n', ' '))

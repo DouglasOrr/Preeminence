@@ -1159,6 +1159,19 @@ class GameResult:
         """
         return next(iter(self.winners)) if len(self.winners) == 1 else None
 
+    @classmethod
+    def _from_json(cls, d, player_names=None):
+        return cls(winners=set(d['winners']),
+                   eliminated=d['eliminated'],
+                   player_names=d.get('player_names', player_names))
+
+    def _to_json(self, save_player_names=True):
+        d = dict(winners=list(self.winners),
+                 eliminated=self.eliminated)
+        if save_player_names:
+            d['player_names'] = self.player_names
+        return d
+
 
 class Game:
     """Play, step through or watch a game of Preeminence.
@@ -1365,24 +1378,92 @@ class TournamentResult:
                 played[eliminated] += 1
         return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]
 
+    @classmethod
+    def _from_json(cls, d):
+        return cls(player_names=d['player_names'],
+                   games=[GameResult._from_json(game, player_names=d['player_names'])
+                          for game in d['games']])
+
+    def _to_json(self):
+        return dict(player_names=self.player_names,
+                    games=[game._to_json(save_player_names=False) for game in self.games])
+
+    @property
+    def pairwise_win_rate(self):
+        """For 1v1 tournaments, show a matrix of pairwise performance in individual match-ups.
+
+        **`returns`** -- `np.array` -- where result[p0][p1] is the win rate of p0 in the "p0 vs p1" match-up
+        """
+        assert all(len(game.winners) + len(game.eliminated) == 2 for game in self.games), 'not a 1v1 tournament'
+        played = np.zeros((self.n_players, self.n_players))
+        wins = played.copy()
+        for game in self.games:
+            p = list(game.winners) + game.eliminated
+            played[p[0], p[1]] += 1
+            played[p[1], p[0]] += 1
+            wins[p[0], p[1]] += (p[0] in game.winners) / len(game.winners)
+            wins[p[1], p[0]] += (p[1] in game.winners) / len(game.winners)
+        return wins / (played + np.eye(self.n_players))
+
+    @classmethod
+    def load(cls, path):
+        """Load a tournament result from disk.
+
+        `path` -- `str` -- local path to a JSON file
+
+        **`returns`** -- `TournamentResult`
+        """
+        with open(path, 'r') as f:
+            return cls.load_file(f)
+
+    @classmethod
+    def load_file(cls, f):
+        """Load a tournament result from file object."""
+        return cls._from_json(json.load(f))
+
+    def save(self, path):
+        """Save a tournament result to disk.
+
+        `path` -- `str` -- local path to a JSON file
+
+        **`returns`** -- `TournamentResult`
+        """
+        with open(path, 'w') as f:
+            return self.save_file(f)
+
+    def save_file(self, f):
+        """Save a tournament result to file object."""
+        json.dump(self._to_json(), f)
+
+
+def _long_class_name(obj):
+    """Naming based on module & class rather than `str()`, for more uniform naming.
+
+    obj -- `object` -- instance to name
+
+    returns -- `str` -- name
+    """
+    return '{}.{}'.format(obj.__class__.__module__, obj.__class__.__qualname__)
+
 
 class Tournament:
     """Run simple tournaments (multiple games, in parallel)."""
     class _Runner:
-        def __init__(self, map, agents):
+        def __init__(self, map, agents, agent_names):
             self.map = map
             self.agents = agents
+            self.agent_names = agent_names
 
         def __call__(self, indices):
             result = Game.play(self.map, [self.agents[n] for n in indices])
             return GameResult(
                 winners={indices[w] for w in result.winners},
                 eliminated=[indices[e] for e in result.eliminated],
-                player_names=[str(a) for a in self.agents]
+                player_names=self.agent_names,
             )
 
     @classmethod
-    def run(cls, map, agents, rounds=10, players_per_game=2,
+    def run(cls, map, agents, agent_names=None, rounds=10, players_per_game=2,
             n_processes=multiprocessing.cpu_count() + 1):
         """Run a round-robin tournament, in parallel across different processes, and return results.
 
@@ -1395,6 +1476,9 @@ class Tournament:
 
         `agents` -- `[Agent]` -- agents to participate in the tournament
 
+        `agent_names` -- `[str] or None` -- override the default naming of `Tournament.agent_class_names`
+                         (e.g. using `str(agent)`)
+
         `players_per_game` -- `int` -- e.g. `2` (for 1v1), or `len(agents)` for all-vs-all
 
         `n_processes` -- `int` -- number of game playing workers to spawn
@@ -1402,10 +1486,13 @@ class Tournament:
         **`returns`** -- `TournamentResult` -- outcomes of all games
         """
         agent_indices = list(range(len(agents)))
+        agent_names = (agent_names
+                       if agent_names is not None else
+                       [_long_class_name(agent) for agent in agents])
         with multiprocessing.Pool(n_processes) as pool:
             results = list(pool.map(
-                cls._Runner(map, agents),
+                cls._Runner(map, agents, agent_names),
                 (indices
                  for _ in range(rounds)
                  for indices in it.combinations(agent_indices, players_per_game))))
-            return TournamentResult([str(agent) for agent in agents], results)
+            return TournamentResult(agent_names, results)
