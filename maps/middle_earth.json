@@ -1,0 +1,109 @@
+{
+    "name": "middle_earth",
+    "territories": [
+        ["Forlond", "Beleriand", ["Grey Havens"]],
+        ["Grey Havens", "Beleriand", ["Forlond", "Harlond", "North Blue Mountains", "South Blue Mountains", "The Shire"]],
+        ["Harlond", "Beleriand", ["Grey Havens"]],
+        ["North Blue Mountains", "Beleriand", ["Grey Havens"]],
+        ["South Blue Mountains", "Beleriand", ["Grey Havens"]],
+
+        ["Evendim", "Eriador", ["The Shire", "Bree", "Angmar of Old"]],
+        ["Angmar of Old", "Eriador", ["Evendim", "Rivendell"]],
+        ["The Shire", "Eriador", ["Evendim", "Bree", "Minhiriath", "Grey Havens"]],
+        ["Bree", "Eriador", ["The Shire", "Evendim", "Rivendell", "Minhiriath"]],
+        ["Rivendell", "Eriador", ["Bree", "Angmar of Old", "Eregion"]],
+        ["Minhiriath", "Eriador", ["The Shire", "Bree", "Eregion", "Enedwaith"]],
+        ["Eregion", "Eriador", ["Minhiriath", "Rivendell", "Dunland", "Moria"]],
+        ["Dunland", "Eriador", ["Eregion", "Enedwaith"]],
+        ["Enedwaith", "Eriador", ["Minhiriath", "Dunland", "Isengard", "Anfalas"]],
+
+        ["Gundabad", "Misty Mountains", ["Moria"]],
+        ["Moria", "Misty Mountains", ["Lorien", "Gundabad", "Isengard", "Eregion"]],
+        ["Isengard", "Misty Mountains", ["Moria", "Enedwaith", "West Rohan"]],
+
+        ["Grey Mountains", "Rhovanion", ["North Mirkwood", "Iron Hills"]],
+        ["North Mirkwood", "Rhovanion", ["Grey Mountains", "South Mirkwood", "Iron Hills"]],
+        ["Iron Hills", "Rhovanion", ["Grey Mountains", "North Mirkwood", "South Mirkwood"]],
+        ["South Mirkwood", "Rhovanion", ["North Mirkwood", "Iron Hills", "The Brown Lands", "Lorien"]],
+        ["The Brown Lands", "Rhovanion", ["South Mirkwood", "Lorien", "East Rohan"]],
+        ["Lorien", "Rhovanion", ["Moria", "South Mirkwood", "The Brown Lands", "Fangorn"]],
+
+        ["Fangorn", "Rohan", ["Lorien", "East Rohan", "West Rohan"]],
+        ["West Rohan", "Rohan", ["Fangorn", "Isengard", "East Rohan", "Helm's Deep"]],
+        ["Helm's Deep", "Rohan", ["West Rohan"]],
+        ["East Rohan", "Rohan", ["Fangorn", "West Rohan", "Minas Tirith", "The Brown Lands"]],
+
+        ["North Gondor", "Gondor", ["Anfalas", "Belfalas", "Ithilien", "Minas Tirith"]],
+        ["Anfalas", "Gondor", ["Enedwaith", "Belfalas", "North Gondor"]],
+        ["Belfalas", "Gondor", ["Anfalas", "North Gondor", "Ithilien", "Harondor"]],
+        ["Ithilien", "Gondor", ["Belfalas", "North Gondor", "Minas Tirith", "Harondor"]],
+        ["Minas Tirith", "Gondor", ["East Rohan", "Ithilien", "North Gondor", "Gorgoroth"]],
+
+        ["Ash Mountains", "Mordor", ["Gorgoroth"]],
+        ["Gorgoroth", "Mordor", ["Ash Mountains", "Minas Tirith", "Nurn"]],
+        ["Nurn", "Mordor", ["Gorgoroth", "Mountains of Shadow"]],
+        ["Mountains of Shadow", "Mordor", ["Nurn"]],
+
+        ["Harondor", "Harad", ["Ithilien", "Belfalas", "Near Harad"]],
+        ["Near Harad", "Harad", ["Harondor"]]
+    ],
+    "continents": [
+        ["Beleriand", 2],
+        ["Eriador", 5],
+        ["Misty Mountains", 2],
+        ["Rhovanion", 3],
+        ["Rohan", 3],
+        ["Gondor", 4],
+        ["Mordor", 2],
+        ["Harad", 1]
+    ],
+    "initial_armies": [40, 35, 30, 25, 20],
+    "max_turns": 30,
+    "layout": {
+        "Forlond": [0.0, 0.8],
+        "Grey Havens": [0.07, 0.75],
+        "Harlond": [0.04, 0.65],
+        "North Blue Mountains": [0.12, 0.8],
+        "South Blue Mountains": [0.12, 0.62],
+
+        "Evendim": [0.25, 0.86],
+        "Angmar of Old": [0.4, 0.89],
+        "The Shire": [0.2, 0.69],
+        "Bree": [0.3, 0.7],
+        "Rivendell": [0.48, 0.68],
+        "Minhiriath": [0.28, 0.53],
+        "Eregion": [0.42, 0.5],
+        "Dunland": [0.44, 0.42],
+        "Enedwaith": [0.35, 0.33],
+
+        "Gundabad": [0.53, 0.98],
+        "Moria": [0.55, 0.5],
+        "Isengard": [0.5, 0.3],
+
+        "Grey Mountains": [0.7, 1],
+        "North Mirkwood": [0.69, 0.82],
+        "Iron Hills": [0.95, 0.87],
+        "South Mirkwood": [0.71, 0.55],
+        "The Brown Lands": [0.8, 0.35],
+        "Lorien": [0.6, 0.45],
+
+        "Fangorn": [0.59, 0.38],
+        "West Rohan": [0.6, 0.3],
+        "Helm's Deep": [0.6, 0.27],
+        "East Rohan": [0.72, 0.28],
+
+        "North Gondor": [0.68, 0.22],
+        "Anfalas": [0.45, 0.2],
+        "Belfalas": [0.7, 0.14],
+        "Ithilien": [0.86, 0.17],
+        "Minas Tirith": [0.87, 0.25],
+
+        "Ash Mountains": [1.0, 0.29],
+        "Gorgoroth": [0.92, 0.25],
+        "Nurn": [0.93, 0.15],
+        "Mountains of Shadow": [1.0, 0.1],
+
+        "Harondor": [0.82, 0.05],
+        "Near Harad": [0.96, 0.0]
+    }
+}
