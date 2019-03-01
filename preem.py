@@ -383,17 +383,13 @@ class World:
         actions of every other agent. Note that in this log the `agent` has been replaced with
         `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
         private information leakage)."""
+        self._thinking_time = [0 for _ in range(len(player_names))]
 
     def __repr__(self):
         return 'World[map={}, players={}]'.format(self.map, self.n_players)
 
     def _repr_svg_(self):
         return _View.to_svg(_View.world_to_graph(self))
-
-    def _add_event(self, event):
-        self.event_log.append(event._replace(agent=repr(event.agent),
-                                             state=event.state.player_index))
-        return event
 
     @property
     def n_players(self):
@@ -975,6 +971,17 @@ class _NeutralAgent(Agent):
         return self.rand.choice([t for t in territories if state.world.armies[t] == min_armies])
 
 
+def _call_method(agent, validating_method, state, **kwargs):
+    t0 = time.process_time()
+    result = validating_method(_ValidatingAgent(agent), state, **kwargs)
+    t1 = time.process_time()
+    state.world._thinking_time[state.player_index] += t1 - t0
+    event = Event(agent, state, validating_method.__name__, kwargs, result)
+    state.world.event_log.append(event._replace(agent=repr(event.agent),
+                                                state=event.state.player_index))
+    return event, result
+
+
 def _placement_phase(world, agents_and_states, rand):
     """Run the territory allocation & army placement phase of the game."""
     placement_order = agents_and_states.copy()
@@ -997,8 +1004,8 @@ def _placement_phase(world, agents_and_states, rand):
                     for a, s in placement_order:
                         a.start_game(s)
                     start_game_called = True
-                placement = _ValidatingAgent(agent).place(state)
-                yield world._add_event(Event(agent, state, 'place', {}, placement))
+                event, placement = _call_method(agent, _ValidatingAgent.place, state)
+                yield event
             world.owners[placement] = state.player_index
             world.armies[placement] += 1
 
@@ -1043,8 +1050,8 @@ def _reinforce(agent, state, deck):
 
     # 3. From cards
     if 3 <= len(state.cards):
-        set_ = _ValidatingAgent(agent).redeem(state)
-        yield state.world._add_event(Event(agent, state, 'redeem', {}, set_))
+        event, set_ = _call_method(agent, _ValidatingAgent.redeem, state)
+        yield event
         if set_:
             for card in set_:
                 if state.world.owners[card.territory] == state.player_index:
@@ -1055,9 +1062,8 @@ def _reinforce(agent, state, deck):
             state.world.sets_redeemed += 1
 
     # Apply reinforcements
-    destinations = _ValidatingAgent(agent).reinforce(state, count=general_reinforcements)
-    yield state.world._add_event(
-        Event(agent, state, 'reinforce', dict(count=general_reinforcements), destinations))
+    event, destinations = _call_method(agent, _ValidatingAgent.reinforce, state, count=general_reinforcements)
+    yield event
     for territory, count in destinations.items():
         state.world.armies[territory] += count
 
@@ -1069,8 +1075,8 @@ class _GameOverException(Exception):
 def _attack_and_move(agent, state, deck, agents_and_states, rand):
     earned_card = False
     while True:
-        action = _ValidatingAgent(agent).act(state, earned_card=earned_card)
-        yield state.world._add_event(Event(agent, state, 'act', dict(earned_card=earned_card), action))
+        event, action = _call_method(agent, _ValidatingAgent.act, state, earned_card=earned_card)
+        yield event
         if action is None:
             break  # end of turn
 
@@ -1125,9 +1131,11 @@ def _main_phase(world, agents_and_states, rand):
 
 class GameResult:
     """The outcome of a single game."""
-    __slots__ = ('winners', 'eliminated', 'player_names')
+    __slots__ = ('winners', 'eliminated', 'player_names', 'turns',
+                 'game_time', 'thinking_time')
 
-    def __init__(self, winners, eliminated, player_names):
+    def __init__(self, winners, eliminated, player_names, turns,
+                 game_time, thinking_time):
         self.winners = winners
         """`{int}` -- set of player IDs of game winners.
 
@@ -1140,6 +1148,12 @@ class GameResult:
         """
         self.player_names = player_names
         """`[str]` -- friendly names for the players."""
+        self.turns = turns
+        """`int` -- number of turns before the game ended."""
+        self.game_time = game_time
+        """``float` -- total process time to play the game."""
+        self.thinking_time = thinking_time
+        """``[float]` -- total thinking time of each agent."""
 
     @staticmethod
     def _name(player_names, player_index):
@@ -1163,11 +1177,17 @@ class GameResult:
     def _from_json(cls, d, player_names=None):
         return cls(winners=set(d['winners']),
                    eliminated=d['eliminated'],
-                   player_names=d.get('player_names', player_names))
+                   player_names=d.get('player_names', player_names),
+                   turns=d['turns'],
+                   game_time=d['game_time'],
+                   thinking_time=d['thinking_time'])
 
     def _to_json(self, save_player_names=True):
         d = dict(winners=list(self.winners),
-                 eliminated=self.eliminated)
+                 eliminated=self.eliminated,
+                 turns=self.turns,
+                 game_time=self.game_time,
+                 thinking_time=self.thinking_time)
         if save_player_names:
             d['player_names'] = self.player_names
         return d
@@ -1206,6 +1226,7 @@ class Game:
                               _main_phase(world,
                                           agents_and_states[:-1] if world.has_neutral else agents_and_states,
                                           rand=rand))
+        self._start_time = time.process_time()
 
     @property
     def map(self):
@@ -1259,8 +1280,12 @@ class Game:
 
         Note that this still returns a result if the game is not finished (inevitably a tie).
         """
-        winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
-        return GameResult(winners, self.world.eliminated_players, self.world.player_names)
+        n_players = len(self.agents_and_states) - self.world.has_neutral
+        winners = set(range(n_players)) - set(self.world.eliminated_players)
+        return GameResult(winners, self.world.eliminated_players, self.world.player_names,
+                          self.world.turn + 1,
+                          time.process_time() - self._start_time,
+                          self.world._thinking_time[:n_players])
 
     @classmethod
     def start(cls, map, agents, rand=random):
@@ -1456,10 +1481,16 @@ class Tournament:
 
         def __call__(self, indices):
             result = Game.play(self.map, [self.agents[n] for n in indices])
+            thinking_time = [0 for n in range(len(self.agents))]
+            for n, t in enumerate(result.thinking_time):
+                thinking_time[indices[n]] = t
             return GameResult(
                 winners={indices[w] for w in result.winners},
                 eliminated=[indices[e] for e in result.eliminated],
                 player_names=self.agent_names,
+                turns=result.turns,
+                game_time=result.game_time,
+                thinking_time=thinking_time,
             )
 
     @classmethod

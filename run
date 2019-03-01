@@ -21,7 +21,7 @@ def docker(cmd, docker_detach=False, docker_args='', **kwargs):
     docker_cmd = cmd.format(**kwargs)
     is_tty = os.isatty(sys.stdin.fileno())
     sh('docker run {mode}'
-       ' -v `pwd`:/work -w /work -e PYTHONPATH=/work'
+       ' -v `pwd`:/preem -w /preem -e PYTHONPATH=/preem:/preem/agents'
        ' {docker_args}'
        ' preem {command}',
        command=docker_cmd,

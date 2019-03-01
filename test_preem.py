@@ -4,6 +4,7 @@ import collections
 import os
 import re
 import itertools as it
+import functools as ft
 import unittest.mock as um
 import numpy as np
 import networkx as nx
@@ -16,23 +17,36 @@ import agents.random_agent as random_agent
 
 def test_game_result():
     player_names = ['zero', 'one', 'two', 'three']
-    assert P.GameResult({1, 2}, [3, 0], player_names).outright_winner is None
-    assert P.GameResult({2}, [3, 1, 0], player_names).outright_winner == 2
+    draw = P.GameResult({1, 2}, [3, 0], player_names,
+                        turns=30, game_time=1.2, thinking_time=[1, 1, 1, 1])
+    assert draw.outright_winner is None
 
-    result = P.GameResult({2}, [3, 1, 0], player_names)
-    assert 'winners={#2:two}' in str(result)
+    two_win = P.GameResult({2}, [3, 1, 0], player_names,
+                           turns=12, game_time=0.4, thinking_time=[0.1, 0.2, 0.2, 0.3])
+    assert two_win.outright_winner == 2
 
-    reloaded = P.GameResult._from_json(result._to_json())
-    assert reloaded.winners == result.winners
-    assert reloaded.eliminated == result.eliminated
+    assert 'winners={#2:two}' in str(two_win)
+
+    reloaded = P.GameResult._from_json(two_win._to_json())
+    assert reloaded.winners == two_win.winners
+    assert reloaded.eliminated == two_win.eliminated
+    assert reloaded.player_names == two_win.player_names
+    assert reloaded.turns == two_win.turns
+    assert reloaded.game_time == two_win.game_time
+    assert reloaded.thinking_time == two_win.thinking_time
 
 
 def test_tournament_result_1v1():
     player_names = ['zero', 'one', 'two']
+    make_result = ft.partial(P.GameResult,
+                             player_names=player_names,
+                             turns=12,
+                             game_time=0.6,
+                             thinking_time=[0.1, 0.2, 0.3])
     result = P.TournamentResult(player_names,
-                                [P.GameResult({0, 1}, [], player_names),
-                                 P.GameResult({1}, [2], player_names),
-                                 P.GameResult({2}, [0], player_names)])
+                                [make_result({0, 1}, []),
+                                 make_result({1}, [2]),
+                                 make_result({2}, [0])])
     assert result.win_rate == [0.25, 0.75, 0.5]
     np.testing.assert_allclose(result.pairwise_win_rate,
                                [[0.0, 0.5, 0.0],
@@ -42,11 +56,16 @@ def test_tournament_result_1v1():
 
 def test_tournament_result_4_for_all(tmpdir):
     player_names = ['zero', 'one', 'two', 'three']
+    make_result = ft.partial(P.GameResult,
+                             player_names=player_names,
+                             turns=25,
+                             game_time=1.1,
+                             thinking_time=[0.1, 0.2, 0.3, 0.4])
     result = P.TournamentResult(player_names,
-                                [P.GameResult({0, 1, 3}, [2], player_names),
-                                 P.GameResult({1, 3}, [2, 0], player_names),
-                                 P.GameResult({1}, [2, 0, 3], player_names),
-                                 P.GameResult({1}, [2, 0, 3], player_names)])
+                                [make_result({0, 1, 3}, [2]),
+                                 make_result({1, 3}, [2, 0]),
+                                 make_result({1}, [2, 0, 3]),
+                                 make_result({1}, [2, 0, 3])])
     path = tmpdir.join('result.json')
     result.save(str(path))
     path.check(file=1)
@@ -597,6 +616,9 @@ def test_tournament():
             winners=winners,
             eliminated=[i for i in [0, 1] if i not in winners],
             player_names=[str(a) for a in game_agents],
+            turns=10,
+            game_time=1.7,
+            thinking_time=[0.1, 0.1],
         )
 
     with um.patch('preem.Game') as game_cls, \
