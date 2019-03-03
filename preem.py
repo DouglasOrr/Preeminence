@@ -1507,7 +1507,7 @@ class Tournament:
 
         `agents` -- `[Agent]` -- agents to participate in the tournament
 
-        `agent_names` -- `[str] or None` -- override the default naming of `Tournament.agent_class_names`
+        `agent_names` -- `[str] or None` -- override the default naming "module.Class"
                          (e.g. using `str(agent)`)
 
         `players_per_game` -- `int` -- e.g. `2` (for 1v1), or `len(agents)` for all-vs-all
