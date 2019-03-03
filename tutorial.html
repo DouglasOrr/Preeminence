@@ -13129,12 +13129,12 @@ div#notebook {
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="0.-Setting-up-Preeminence">0. Setting up Preeminence<a class="anchor-link" href="#0.-Setting-up-Preeminence">&#182;</a></h2><p>We'll use Preeminence through a web server (called <em>Jupyter Notebooks</em>) that will let you edit, run &amp; visualise all in one place. You can run this server in Docker to keep everything tidy &amp; predictable. To get started:</p>
 <ul>
-<li>Install <a href="https://docs.docker.com/install/">Docker CE</a></li>
+<li>Install <a href="https://docs.docker.com/install/">Docker CE</a> &amp; <a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">git</a></li>
 <li>Run: <code>$ git clone https://github.com/DouglasOrr/Preeminence.git</code><ul>
 <li><em>(clones <a href="https://github.com/DouglasOrr/Preeminence">Preeminence</a>)</em></li>
 </ul>
 </li>
-<li>Run: <code>$ ./run_notebook.sh</code><ul>
+<li>Run: <code>$ ./run_notebook.sh</code> (Linux/Mac) or <code>run_notebook.bat</code> (Windows)<ul>
 <li><em>(starts a notebook server)</em></li>
 <li>open the URL that is shown</li>
 </ul>
@@ -13168,7 +13168,7 @@ div#notebook {
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Hi! I&#39;m up-to-date as of: 2019-02-26 10:51:22.872783
+<pre>Hi! I&#39;m up-to-date as of: 2019-03-03 04:26:58.994513
 </pre>
 </div>
 </div>
@@ -13498,7 +13498,7 @@ value of next set: 4
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>GameResult(winners={#0:RandomAgent@d8f774a8}, eliminated=[#1:RandomAgent@d8f774a8, #2:RandomAgent@d8f774a8])</pre>
+<pre>GameResult(winners={#2:__main__.RandomAgent@4d6bd240}, eliminated=[#1:__main__.RandomAgent@4d6bd240, #0:__main__.RandomAgent@4d6bd240])</pre>
 </div>
 
 </div>
@@ -13589,7 +13589,7 @@ player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=5)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
 player_1 act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
-GameResult(winners={#1:RandomAgent@d90a1a90}, eliminated=[#0:RandomAgent@d90a1a90])
+GameResult(winners={#1:__main__.RandomAgent@298ed400}, eliminated=[#0:__main__.RandomAgent@298ed400])
 </pre>
 </div>
 </div>
@@ -13689,7 +13689,7 @@ RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=5, count=
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=3, to=4, count=4)
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=3)
 RandomAgent act {&#39;earned_card&#39;: True} -&gt; Attack(from_=4, to=5, count=2)
-GameResult(winners={#1:RandomAgent@d8f77eb8}, eliminated=[#0:NewRandomAgent@d859be48])
+GameResult(winners={#1:__main__.RandomAgent@4d64a0b8}, eliminated=[#0:__main__.NewRandomAgent@5176eb00])
 </pre>
 </div>
 </div>
@@ -13756,7 +13756,7 @@ GameResult(winners={#1:RandomAgent@d8f77eb8}, eliminated=[#0:NewRandomAgent@d859
 <!-- 0 -->
 <g id="node1" class="node">
 <title>0</title>
-<g id="a_node1"><a xlink:title="#0: L1&#10;#1: RandomAgent@d8f77198&#10;1 armies">
+<g id="a_node1"><a xlink:title="#0: L1&#10;#1: __main__.RandomAgent@4d6bd6a0&#10;1 armies">
 <ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="5" cy="-60.7636" rx="5" ry="5"/>
 </a>
 </g>
@@ -13777,7 +13777,7 @@ GameResult(winners={#1:RandomAgent@d8f77eb8}, eliminated=[#0:NewRandomAgent@d859
 <!-- 2 -->
 <g id="node3" class="node">
 <title>2</title>
-<g id="a_node3"><a xlink:title="#2: L3&#10;#0: NewRandomAgent@d8f77898&#10;1 armies">
+<g id="a_node3"><a xlink:title="#2: L3&#10;#0: __main__.NewRandomAgent@4d6bdc88&#10;1 armies">
 <ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="178.555" cy="-146.2908" rx="5" ry="5"/>
 </a>
 </g>
@@ -13795,7 +13795,7 @@ GameResult(winners={#1:RandomAgent@d8f77eb8}, eliminated=[#0:NewRandomAgent@d859
 <!-- 3 -->
 <g id="node4" class="node">
 <title>3</title>
-<g id="a_node4"><a xlink:title="#3: R1&#10;#1: RandomAgent@d8f77198&#10;1 armies">
+<g id="a_node4"><a xlink:title="#3: R1&#10;#1: __main__.RandomAgent@4d6bd6a0&#10;1 armies">
 <ellipse fill="#698b22" stroke="#000000" stroke-width="0" cx="409.9617" cy="-146.2908" rx="5" ry="5"/>
 </a>
 </g>
@@ -13808,7 +13808,7 @@ GameResult(winners={#1:RandomAgent@d8f77eb8}, eliminated=[#0:NewRandomAgent@d859
 <!-- 4 -->
 <g id="node5" class="node">
 <title>4</title>
-<g id="a_node5"><a xlink:title="#4: R2&#10;#0: NewRandomAgent@d8f77898&#10;1 armies">
+<g id="a_node5"><a xlink:title="#4: R2&#10;#0: __main__.NewRandomAgent@4d6bdc88&#10;1 armies">
 <ellipse fill="#cd5b45" stroke="#000000" stroke-width="0" cx="583.5166" cy="-231.818" rx="5" ry="5"/>
 </a>
 </g>
@@ -13839,12 +13839,12 @@ GameResult(winners={#1:RandomAgent@d8f77eb8}, eliminated=[#0:NewRandomAgent@d859
 <!-- legend -->
 <g id="node7" class="node">
 <title>legend</title>
-<text text-anchor="start" x="121.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
-<text text-anchor="start" x="184.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">NewRa..77898</text>
-<text text-anchor="start" x="290.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="300.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#698b22">Rando..77198</text>
-<text text-anchor="start" x="400.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
-<text text-anchor="start" x="410.7583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#666666">Neutral</text>
+<text text-anchor="start" x="129.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">Players: </text>
+<text text-anchor="start" x="192.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#cd5b45">__mai..bdc88</text>
+<text text-anchor="start" x="287.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
+<text text-anchor="start" x="297.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#698b22">__mai..bd6a0</text>
+<text text-anchor="start" x="392.7583" y="-15.3" font-family="Times,serif" font-size="14.00" fill="#000000">, </text>
+<text text-anchor="start" x="402.7583" y="-15.3" font-family="Times,serif" text-decoration="underline" font-size="14.00" fill="#666666">Neutral</text>
 </g>
 </g>
 </svg>
@@ -14800,10 +14800,10 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <tr><th style="text-align: right;">  player index</th><th>name                   </th><th style="text-align: right;">  win rate</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: right;">             1</td><td>RandomAgent@b4b61080   </td><td style="text-align: right;">     53.3%</td></tr>
-<tr><td style="text-align: right;">             2</td><td>RandomAgent@b4b61128   </td><td style="text-align: right;">     53.3%</td></tr>
-<tr><td style="text-align: right;">             3</td><td>RandomAgent@b4b61160   </td><td style="text-align: right;">     51.7%</td></tr>
-<tr><td style="text-align: right;">             0</td><td>NewRandomAgent@d8fc0c88</td><td style="text-align: right;">     41.7%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>__main__.NewRandomAgent</td><td style="text-align: right;">     63.3%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>__main__.RandomAgent   </td><td style="text-align: right;">     50.0%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>__main__.RandomAgent   </td><td style="text-align: right;">     45.0%</td></tr>
+<tr><td style="text-align: right;">             2</td><td>__main__.RandomAgent   </td><td style="text-align: right;">     41.7%</td></tr>
 </tbody>
 </table>
 </div>
@@ -14843,10 +14843,10 @@ Continents: [(&#39;North America&#39;, 5), (&#39;South America&#39;, 2), (&#39;E
 <tr><th style="text-align: right;">  player index</th><th>name                   </th><th style="text-align: right;">  win rate</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: right;">             0</td><td>NewRandomAgent@b4b610b8</td><td style="text-align: right;">     27.4%</td></tr>
-<tr><td style="text-align: right;">             1</td><td>RandomAgent@b4b611d0   </td><td style="text-align: right;">     26.2%</td></tr>
-<tr><td style="text-align: right;">             2</td><td>RandomAgent@b4b614e0   </td><td style="text-align: right;">     24.7%</td></tr>
-<tr><td style="text-align: right;">             3</td><td>RandomAgent@b4b61550   </td><td style="text-align: right;">     21.6%</td></tr>
+<tr><td style="text-align: right;">             1</td><td>__main__.RandomAgent   </td><td style="text-align: right;">     29.0%</td></tr>
+<tr><td style="text-align: right;">             2</td><td>__main__.RandomAgent   </td><td style="text-align: right;">     28.3%</td></tr>
+<tr><td style="text-align: right;">             3</td><td>__main__.RandomAgent   </td><td style="text-align: right;">     22.3%</td></tr>
+<tr><td style="text-align: right;">             0</td><td>__main__.NewRandomAgent</td><td style="text-align: right;">     20.3%</td></tr>
 </tbody>
 </table>
 </div>

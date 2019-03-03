@@ -341,6 +341,15 @@ class Map:
         self.layout = layout
         &#34;&#34;&#34;`[(float, float)] or None` -- indexed by territory ID, (x,y) positions&#34;&#34;&#34;
 
+        assert len(self.continent_names) == len(self.continent_values)
+        assert len(self.territory_names) == len(self.continents) == len(self.edges)
+        for src, dests in enumerate(self.edges):
+            for dest in dests:
+                assert src in self.edges[dest], \
+                    &#39;all edges are symmetric (#{}:{} -&gt; #{}:{})&#39;.format(
+                        src, self.territory_names[src],
+                        dest, self.territory_names[dest])
+
     def __repr__(self):
         return &#39;Map[name={}, territories={}, continents={}]&#39;.format(
             self.name, self.n_territories, self.n_continents)
@@ -445,17 +454,13 @@ class World:
         actions of every other agent. Note that in this log the `agent` has been replaced with
         `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
         private information leakage).&#34;&#34;&#34;
+        self._thinking_time = [0 for _ in range(len(player_names))]
 
     def __repr__(self):
         return &#39;World[map={}, players={}]&#39;.format(self.map, self.n_players)
 
     def _repr_svg_(self):
         return _View.to_svg(_View.world_to_graph(self))
-
-    def _add_event(self, event):
-        self.event_log.append(event._replace(agent=repr(event.agent),
-                                             state=event.state.player_index))
-        return event
 
     @property
     def n_players(self):
@@ -786,7 +791,9 @@ class Agent:
 
     def __repr__(self):
         &#34;&#34;&#34;Simplified string identifying the agent.&#34;&#34;&#34;
-        return &#39;{}@{:08x}&#39;.format(type(self).__name__, id(self) &amp; 0xffffffff)
+        cls = type(self)
+        return &#39;{}.{}@{:08x}&#39;.format(
+            cls.__module__, cls.__qualname__, id(self) &amp; 0xffffffff)
 
     def start_game(self, state):
         &#34;&#34;&#34;(Optional override) called once before the start of a game, allowing the agent to prepare.
@@ -1035,6 +1042,17 @@ class _NeutralAgent(Agent):
         return self.rand.choice([t for t in territories if state.world.armies[t] == min_armies])
 
 
+def _call_method(agent, validating_method, state, **kwargs):
+    t0 = time.process_time()
+    result = validating_method(_ValidatingAgent(agent), state, **kwargs)
+    t1 = time.process_time()
+    state.world._thinking_time[state.player_index] += t1 - t0
+    event = Event(agent, state, validating_method.__name__, kwargs, result)
+    state.world.event_log.append(event._replace(agent=repr(event.agent),
+                                                state=event.state.player_index))
+    return event, result
+
+
 def _placement_phase(world, agents_and_states, rand):
     &#34;&#34;&#34;Run the territory allocation &amp; army placement phase of the game.&#34;&#34;&#34;
     placement_order = agents_and_states.copy()
@@ -1057,8 +1075,8 @@ def _placement_phase(world, agents_and_states, rand):
                     for a, s in placement_order:
                         a.start_game(s)
                     start_game_called = True
-                placement = _ValidatingAgent(agent).place(state)
-                yield world._add_event(Event(agent, state, &#39;place&#39;, {}, placement))
+                event, placement = _call_method(agent, _ValidatingAgent.place, state)
+                yield event
             world.owners[placement] = state.player_index
             world.armies[placement] += 1
 
@@ -1103,8 +1121,8 @@ def _reinforce(agent, state, deck):
 
     # 3. From cards
     if 3 &lt;= len(state.cards):
-        set_ = _ValidatingAgent(agent).redeem(state)
-        yield state.world._add_event(Event(agent, state, &#39;redeem&#39;, {}, set_))
+        event, set_ = _call_method(agent, _ValidatingAgent.redeem, state)
+        yield event
         if set_:
             for card in set_:
                 if state.world.owners[card.territory] == state.player_index:
@@ -1115,9 +1133,8 @@ def _reinforce(agent, state, deck):
             state.world.sets_redeemed += 1
 
     # Apply reinforcements
-    destinations = _ValidatingAgent(agent).reinforce(state, count=general_reinforcements)
-    yield state.world._add_event(
-        Event(agent, state, &#39;reinforce&#39;, dict(count=general_reinforcements), destinations))
+    event, destinations = _call_method(agent, _ValidatingAgent.reinforce, state, count=general_reinforcements)
+    yield event
     for territory, count in destinations.items():
         state.world.armies[territory] += count
 
@@ -1129,8 +1146,8 @@ class _GameOverException(Exception):
 def _attack_and_move(agent, state, deck, agents_and_states, rand):
     earned_card = False
     while True:
-        action = _ValidatingAgent(agent).act(state, earned_card=earned_card)
-        yield state.world._add_event(Event(agent, state, &#39;act&#39;, dict(earned_card=earned_card), action))
+        event, action = _call_method(agent, _ValidatingAgent.act, state, earned_card=earned_card)
+        yield event
         if action is None:
             break  # end of turn
 
@@ -1185,9 +1202,11 @@ def _main_phase(world, agents_and_states, rand):
 
 class GameResult:
     &#34;&#34;&#34;The outcome of a single game.&#34;&#34;&#34;
-    __slots__ = (&#39;winners&#39;, &#39;eliminated&#39;, &#39;player_names&#39;)
+    __slots__ = (&#39;winners&#39;, &#39;eliminated&#39;, &#39;player_names&#39;, &#39;turns&#39;,
+                 &#39;game_time&#39;, &#39;thinking_time&#39;)
 
-    def __init__(self, winners, eliminated, player_names):
+    def __init__(self, winners, eliminated, player_names, turns,
+                 game_time, thinking_time):
         self.winners = winners
         &#34;&#34;&#34;`{int}` -- set of player IDs of game winners.
 
@@ -1200,6 +1219,12 @@ class GameResult:
         &#34;&#34;&#34;
         self.player_names = player_names
         &#34;&#34;&#34;`[str]` -- friendly names for the players.&#34;&#34;&#34;
+        self.turns = turns
+        &#34;&#34;&#34;`int` -- number of turns before the game ended.&#34;&#34;&#34;
+        self.game_time = game_time
+        &#34;&#34;&#34;``float` -- total process time to play the game.&#34;&#34;&#34;
+        self.thinking_time = thinking_time
+        &#34;&#34;&#34;``[float]` -- total thinking time of each agent.&#34;&#34;&#34;
 
     @staticmethod
     def _name(player_names, player_index):
@@ -1218,6 +1243,25 @@ class GameResult:
         **`returns`** -- `int or None` -- player ID of winner, if there was a single winner
         &#34;&#34;&#34;
         return next(iter(self.winners)) if len(self.winners) == 1 else None
+
+    @classmethod
+    def _from_json(cls, d, player_names=None):
+        return cls(winners=set(d[&#39;winners&#39;]),
+                   eliminated=d[&#39;eliminated&#39;],
+                   player_names=d.get(&#39;player_names&#39;, player_names),
+                   turns=d[&#39;turns&#39;],
+                   game_time=d[&#39;game_time&#39;],
+                   thinking_time=d[&#39;thinking_time&#39;])
+
+    def _to_json(self, save_player_names=True):
+        d = dict(winners=list(self.winners),
+                 eliminated=self.eliminated,
+                 turns=self.turns,
+                 game_time=self.game_time,
+                 thinking_time=self.thinking_time)
+        if save_player_names:
+            d[&#39;player_names&#39;] = self.player_names
+        return d
 
 
 class Game:
@@ -1253,6 +1297,7 @@ class Game:
                               _main_phase(world,
                                           agents_and_states[:-1] if world.has_neutral else agents_and_states,
                                           rand=rand))
+        self._start_time = time.process_time()
 
     @property
     def map(self):
@@ -1306,8 +1351,12 @@ class Game:
 
         Note that this still returns a result if the game is not finished (inevitably a tie).
         &#34;&#34;&#34;
-        winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
-        return GameResult(winners, self.world.eliminated_players, self.world.player_names)
+        n_players = len(self.agents_and_states) - self.world.has_neutral
+        winners = set(range(n_players)) - set(self.world.eliminated_players)
+        return GameResult(winners, self.world.eliminated_players, self.world.player_names,
+                          self.world.turn + 1,
+                          time.process_time() - self._start_time,
+                          self.world._thinking_time[:n_players])
 
     @classmethod
     def start(cls, map, agents, rand=random):
@@ -1425,24 +1474,98 @@ class TournamentResult:
                 played[eliminated] += 1
         return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]
 
+    @classmethod
+    def _from_json(cls, d):
+        return cls(player_names=d[&#39;player_names&#39;],
+                   games=[GameResult._from_json(game, player_names=d[&#39;player_names&#39;])
+                          for game in d[&#39;games&#39;]])
+
+    def _to_json(self):
+        return dict(player_names=self.player_names,
+                    games=[game._to_json(save_player_names=False) for game in self.games])
+
+    @property
+    def pairwise_win_rate(self):
+        &#34;&#34;&#34;For 1v1 tournaments, show a matrix of pairwise performance in individual match-ups.
+
+        **`returns`** -- `np.array` -- where result[p0][p1] is the win rate of p0 in the &#34;p0 vs p1&#34; match-up
+        &#34;&#34;&#34;
+        assert all(len(game.winners) + len(game.eliminated) == 2 for game in self.games), &#39;not a 1v1 tournament&#39;
+        played = np.zeros((self.n_players, self.n_players))
+        wins = played.copy()
+        for game in self.games:
+            p = list(game.winners) + game.eliminated
+            played[p[0], p[1]] += 1
+            played[p[1], p[0]] += 1
+            wins[p[0], p[1]] += (p[0] in game.winners) / len(game.winners)
+            wins[p[1], p[0]] += (p[1] in game.winners) / len(game.winners)
+        return wins / (played + np.eye(self.n_players))
+
+    @classmethod
+    def load(cls, path):
+        &#34;&#34;&#34;Load a tournament result from disk.
+
+        `path` -- `str` -- local path to a JSON file
+
+        **`returns`** -- `TournamentResult`
+        &#34;&#34;&#34;
+        with open(path, &#39;r&#39;) as f:
+            return cls.load_file(f)
+
+    @classmethod
+    def load_file(cls, f):
+        &#34;&#34;&#34;Load a tournament result from file object.&#34;&#34;&#34;
+        return cls._from_json(json.load(f))
+
+    def save(self, path):
+        &#34;&#34;&#34;Save a tournament result to disk.
+
+        `path` -- `str` -- local path to a JSON file
+
+        **`returns`** -- `TournamentResult`
+        &#34;&#34;&#34;
+        with open(path, &#39;w&#39;) as f:
+            return self.save_file(f)
+
+    def save_file(self, f):
+        &#34;&#34;&#34;Save a tournament result to file object.&#34;&#34;&#34;
+        json.dump(self._to_json(), f)
+
+
+def _long_class_name(obj):
+    &#34;&#34;&#34;Naming based on module &amp; class rather than `str()`, for more uniform naming.
+
+    obj -- `object` -- instance to name
+
+    returns -- `str` -- name
+    &#34;&#34;&#34;
+    return &#39;{}.{}&#39;.format(obj.__class__.__module__, obj.__class__.__qualname__)
+
 
 class Tournament:
     &#34;&#34;&#34;Run simple tournaments (multiple games, in parallel).&#34;&#34;&#34;
     class _Runner:
-        def __init__(self, map, agents):
+        def __init__(self, map, agents, agent_names):
             self.map = map
             self.agents = agents
+            self.agent_names = agent_names
 
         def __call__(self, indices):
             result = Game.play(self.map, [self.agents[n] for n in indices])
+            thinking_time = [0 for n in range(len(self.agents))]
+            for n, t in enumerate(result.thinking_time):
+                thinking_time[indices[n]] = t
             return GameResult(
                 winners={indices[w] for w in result.winners},
                 eliminated=[indices[e] for e in result.eliminated],
-                player_names=[str(a) for a in self.agents]
+                player_names=self.agent_names,
+                turns=result.turns,
+                game_time=result.game_time,
+                thinking_time=thinking_time,
             )
 
     @classmethod
-    def run(cls, map, agents, rounds=10, players_per_game=2,
+    def run(cls, map, agents, agent_names=None, rounds=10, players_per_game=2,
             n_processes=multiprocessing.cpu_count() + 1):
         &#34;&#34;&#34;Run a round-robin tournament, in parallel across different processes, and return results.
 
@@ -1455,6 +1578,9 @@ class Tournament:
 
         `agents` -- `[Agent]` -- agents to participate in the tournament
 
+        `agent_names` -- `[str] or None` -- override the default naming &#34;module.Class&#34;
+                         (e.g. using `str(agent)`)
+
         `players_per_game` -- `int` -- e.g. `2` (for 1v1), or `len(agents)` for all-vs-all
 
         `n_processes` -- `int` -- number of game playing workers to spawn
@@ -1462,13 +1588,16 @@ class Tournament:
         **`returns`** -- `TournamentResult` -- outcomes of all games
         &#34;&#34;&#34;
         agent_indices = list(range(len(agents)))
+        agent_names = (agent_names
+                       if agent_names is not None else
+                       [_long_class_name(agent) for agent in agents])
         with multiprocessing.Pool(n_processes) as pool:
             results = list(pool.map(
-                cls._Runner(map, agents),
+                cls._Runner(map, agents, agent_names),
                 (indices
                  for _ in range(rounds)
                  for indices in it.combinations(agent_indices, players_per_game))))
-            return TournamentResult([str(agent) for agent in agents], results)</code></pre>
+            return TournamentResult(agent_names, results)</code></pre>
 </details>
 </section>
 <section>
@@ -1713,7 +1842,9 @@ until enough initial armies have been placed.</p>
 
     def __repr__(self):
         &#34;&#34;&#34;Simplified string identifying the agent.&#34;&#34;&#34;
-        return &#39;{}@{:08x}&#39;.format(type(self).__name__, id(self) &amp; 0xffffffff)
+        cls = type(self)
+        return &#39;{}.{}@{:08x}&#39;.format(
+            cls.__module__, cls.__qualname__, id(self) &amp; 0xffffffff)
 
     def start_game(self, state):
         &#34;&#34;&#34;(Optional override) called once before the start of a game, allowing the agent to prepare.
@@ -2305,6 +2436,7 @@ event = game.next_event(method='reinforce', player_index=0)   # find next matchi
                               _main_phase(world,
                                           agents_and_states[:-1] if world.has_neutral else agents_and_states,
                                           rand=rand))
+        self._start_time = time.process_time()
 
     @property
     def map(self):
@@ -2358,8 +2490,12 @@ event = game.next_event(method='reinforce', player_index=0)   # find next matchi
 
         Note that this still returns a result if the game is not finished (inevitably a tie).
         &#34;&#34;&#34;
-        winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
-        return GameResult(winners, self.world.eliminated_players, self.world.player_names)
+        n_players = len(self.agents_and_states) - self.world.has_neutral
+        winners = set(range(n_players)) - set(self.world.eliminated_players)
+        return GameResult(winners, self.world.eliminated_players, self.world.player_names,
+                          self.world.turn + 1,
+                          time.process_time() - self._start_time,
+                          self.world._thinking_time[:n_players])
 
     @classmethod
     def start(cls, map, agents, rand=random):
@@ -2555,8 +2691,12 @@ def result(self):
 
     Note that this still returns a result if the game is not finished (inevitably a tie).
     &#34;&#34;&#34;
-    winners = set(range(len(self.agents_and_states) - self.world.has_neutral)) - set(self.world.eliminated_players)
-    return GameResult(winners, self.world.eliminated_players, self.world.player_names)</code></pre>
+    n_players = len(self.agents_and_states) - self.world.has_neutral
+    winners = set(range(n_players)) - set(self.world.eliminated_players)
+    return GameResult(winners, self.world.eliminated_players, self.world.player_names,
+                      self.world.turn + 1,
+                      time.process_time() - self._start_time,
+                      self.world._thinking_time[:n_players])</code></pre>
 </details>
 </dd>
 <dt id="preem.Game.world"><code class="name">var <span class="ident">world</span></code></dt>
@@ -2584,7 +2724,8 @@ See help(type(self)) for accurate signature.</p></section>
     self._iter = it.chain(_placement_phase(world, agents_and_states, rand=rand),
                           _main_phase(world,
                                       agents_and_states[:-1] if world.has_neutral else agents_and_states,
-                                      rand=rand))</code></pre>
+                                      rand=rand))
+    self._start_time = time.process_time()</code></pre>
 </details>
 </dd>
 <dt id="preem.Game.next_event"><code class="name flex">
@@ -2643,9 +2784,11 @@ select a matching event</p>
 <summary>Source code</summary>
 <pre><code class="python">class GameResult:
     &#34;&#34;&#34;The outcome of a single game.&#34;&#34;&#34;
-    __slots__ = (&#39;winners&#39;, &#39;eliminated&#39;, &#39;player_names&#39;)
+    __slots__ = (&#39;winners&#39;, &#39;eliminated&#39;, &#39;player_names&#39;, &#39;turns&#39;,
+                 &#39;game_time&#39;, &#39;thinking_time&#39;)
 
-    def __init__(self, winners, eliminated, player_names):
+    def __init__(self, winners, eliminated, player_names, turns,
+                 game_time, thinking_time):
         self.winners = winners
         &#34;&#34;&#34;`{int}` -- set of player IDs of game winners.
 
@@ -2658,6 +2801,12 @@ select a matching event</p>
         &#34;&#34;&#34;
         self.player_names = player_names
         &#34;&#34;&#34;`[str]` -- friendly names for the players.&#34;&#34;&#34;
+        self.turns = turns
+        &#34;&#34;&#34;`int` -- number of turns before the game ended.&#34;&#34;&#34;
+        self.game_time = game_time
+        &#34;&#34;&#34;``float` -- total process time to play the game.&#34;&#34;&#34;
+        self.thinking_time = thinking_time
+        &#34;&#34;&#34;``[float]` -- total thinking time of each agent.&#34;&#34;&#34;
 
     @staticmethod
     def _name(player_names, player_index):
@@ -2675,7 +2824,26 @@ select a matching event</p>
 
         **`returns`** -- `int or None` -- player ID of winner, if there was a single winner
         &#34;&#34;&#34;
-        return next(iter(self.winners)) if len(self.winners) == 1 else None</code></pre>
+        return next(iter(self.winners)) if len(self.winners) == 1 else None
+
+    @classmethod
+    def _from_json(cls, d, player_names=None):
+        return cls(winners=set(d[&#39;winners&#39;]),
+                   eliminated=d[&#39;eliminated&#39;],
+                   player_names=d.get(&#39;player_names&#39;, player_names),
+                   turns=d[&#39;turns&#39;],
+                   game_time=d[&#39;game_time&#39;],
+                   thinking_time=d[&#39;thinking_time&#39;])
+
+    def _to_json(self, save_player_names=True):
+        d = dict(winners=list(self.winners),
+                 eliminated=self.eliminated,
+                 turns=self.turns,
+                 game_time=self.game_time,
+                 thinking_time=self.thinking_time)
+        if save_player_names:
+            d[&#39;player_names&#39;] = self.player_names
+        return d</code></pre>
 </details>
 <h3>Instance variables</h3>
 <dl>
@@ -2683,6 +2851,10 @@ select a matching event</p>
 <dd>
 <section class="desc"><p><code>[int]</code> &ndash; eliminated player IDs listed in order.</p>
 <p>(i.e. <code>eliminated[0]</code> = knocked out first).</p></section>
+</dd>
+<dt id="preem.GameResult.game_time"><code class="name">var <span class="ident">game_time</span></code></dt>
+<dd>
+<section class="desc"><p><code>`float</code> &ndash; total process time to play the game.</p></section>
 </dd>
 <dt id="preem.GameResult.outright_winner"><code class="name">var <span class="ident">outright_winner</span></code></dt>
 <dd>
@@ -2703,6 +2875,14 @@ def outright_winner(self):
 <dd>
 <section class="desc"><p><code>[str]</code> &ndash; friendly names for the players.</p></section>
 </dd>
+<dt id="preem.GameResult.thinking_time"><code class="name">var <span class="ident">thinking_time</span></code></dt>
+<dd>
+<section class="desc"><p><code>`[float]</code> &ndash; total thinking time of each agent.</p></section>
+</dd>
+<dt id="preem.GameResult.turns"><code class="name">var <span class="ident">turns</span></code></dt>
+<dd>
+<section class="desc"><p><code>int</code> &ndash; number of turns before the game ended.</p></section>
+</dd>
 <dt id="preem.GameResult.winners"><code class="name">var <span class="ident">winners</span></code></dt>
 <dd>
 <section class="desc"><p><code>{int}</code> &ndash; set of player IDs of game winners.</p>
@@ -2712,14 +2892,15 @@ def outright_winner(self):
 <h3>Methods</h3>
 <dl>
 <dt id="preem.GameResult.__init__"><code class="name flex">
-<span>def <span class="ident">__init__</span></span>(<span>self, winners, eliminated, player_names)</span>
+<span>def <span class="ident">__init__</span></span>(<span>self, winners, eliminated, player_names, turns, game_time, thinking_time)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Initialize self.
 See help(type(self)) for accurate signature.</p></section>
 <details class="source">
 <summary>Source code</summary>
-<pre><code class="python">def __init__(self, winners, eliminated, player_names):
+<pre><code class="python">def __init__(self, winners, eliminated, player_names, turns,
+             game_time, thinking_time):
     self.winners = winners
     &#34;&#34;&#34;`{int}` -- set of player IDs of game winners.
 
@@ -2731,7 +2912,13 @@ See help(type(self)) for accurate signature.</p></section>
     (i.e. `eliminated[0]` = knocked out first).
     &#34;&#34;&#34;
     self.player_names = player_names
-    &#34;&#34;&#34;`[str]` -- friendly names for the players.&#34;&#34;&#34;</code></pre>
+    &#34;&#34;&#34;`[str]` -- friendly names for the players.&#34;&#34;&#34;
+    self.turns = turns
+    &#34;&#34;&#34;`int` -- number of turns before the game ended.&#34;&#34;&#34;
+    self.game_time = game_time
+    &#34;&#34;&#34;``float` -- total process time to play the game.&#34;&#34;&#34;
+    self.thinking_time = thinking_time
+    &#34;&#34;&#34;``[float]` -- total thinking time of each agent.&#34;&#34;&#34;</code></pre>
 </details>
 </dd>
 </dl>
@@ -2767,6 +2954,15 @@ See help(type(self)) for accurate signature.</p></section>
         &#34;&#34;&#34;`int` -- maximum number of turns allowed in a game, before declaring a tie&#34;&#34;&#34;
         self.layout = layout
         &#34;&#34;&#34;`[(float, float)] or None` -- indexed by territory ID, (x,y) positions&#34;&#34;&#34;
+
+        assert len(self.continent_names) == len(self.continent_values)
+        assert len(self.territory_names) == len(self.continents) == len(self.edges)
+        for src, dests in enumerate(self.edges):
+            for dest in dests:
+                assert src in self.edges[dest], \
+                    &#39;all edges are symmetric (#{}:{} -&gt; #{}:{})&#39;.format(
+                        src, self.territory_names[src],
+                        dest, self.territory_names[dest])
 
     def __repr__(self):
         return &#39;Map[name={}, territories={}, continents={}]&#39;.format(
@@ -3039,7 +3235,16 @@ See help(type(self)) for accurate signature.</p></section>
     self.max_turns = max_turns
     &#34;&#34;&#34;`int` -- maximum number of turns allowed in a game, before declaring a tie&#34;&#34;&#34;
     self.layout = layout
-    &#34;&#34;&#34;`[(float, float)] or None` -- indexed by territory ID, (x,y) positions&#34;&#34;&#34;</code></pre>
+    &#34;&#34;&#34;`[(float, float)] or None` -- indexed by territory ID, (x,y) positions&#34;&#34;&#34;
+
+    assert len(self.continent_names) == len(self.continent_values)
+    assert len(self.territory_names) == len(self.continents) == len(self.edges)
+    for src, dests in enumerate(self.edges):
+        for dest in dests:
+            assert src in self.edges[dest], \
+                &#39;all edges are symmetric (#{}:{} -&gt; #{}:{})&#39;.format(
+                    src, self.territory_names[src],
+                    dest, self.territory_names[dest])</code></pre>
 </details>
 </dd>
 </dl>
@@ -3203,20 +3408,27 @@ See help(type(self)) for accurate signature.</p></section>
 <pre><code class="python">class Tournament:
     &#34;&#34;&#34;Run simple tournaments (multiple games, in parallel).&#34;&#34;&#34;
     class _Runner:
-        def __init__(self, map, agents):
+        def __init__(self, map, agents, agent_names):
             self.map = map
             self.agents = agents
+            self.agent_names = agent_names
 
         def __call__(self, indices):
             result = Game.play(self.map, [self.agents[n] for n in indices])
+            thinking_time = [0 for n in range(len(self.agents))]
+            for n, t in enumerate(result.thinking_time):
+                thinking_time[indices[n]] = t
             return GameResult(
                 winners={indices[w] for w in result.winners},
                 eliminated=[indices[e] for e in result.eliminated],
-                player_names=[str(a) for a in self.agents]
+                player_names=self.agent_names,
+                turns=result.turns,
+                game_time=result.game_time,
+                thinking_time=thinking_time,
             )
 
     @classmethod
-    def run(cls, map, agents, rounds=10, players_per_game=2,
+    def run(cls, map, agents, agent_names=None, rounds=10, players_per_game=2,
             n_processes=multiprocessing.cpu_count() + 1):
         &#34;&#34;&#34;Run a round-robin tournament, in parallel across different processes, and return results.
 
@@ -3229,6 +3441,9 @@ See help(type(self)) for accurate signature.</p></section>
 
         `agents` -- `[Agent]` -- agents to participate in the tournament
 
+        `agent_names` -- `[str] or None` -- override the default naming &#34;module.Class&#34;
+                         (e.g. using `str(agent)`)
+
         `players_per_game` -- `int` -- e.g. `2` (for 1v1), or `len(agents)` for all-vs-all
 
         `n_processes` -- `int` -- number of game playing workers to spawn
@@ -3236,18 +3451,21 @@ See help(type(self)) for accurate signature.</p></section>
         **`returns`** -- `TournamentResult` -- outcomes of all games
         &#34;&#34;&#34;
         agent_indices = list(range(len(agents)))
+        agent_names = (agent_names
+                       if agent_names is not None else
+                       [_long_class_name(agent) for agent in agents])
         with multiprocessing.Pool(n_processes) as pool:
             results = list(pool.map(
-                cls._Runner(map, agents),
+                cls._Runner(map, agents, agent_names),
                 (indices
                  for _ in range(rounds)
                  for indices in it.combinations(agent_indices, players_per_game))))
-            return TournamentResult([str(agent) for agent in agents], results)</code></pre>
+            return TournamentResult(agent_names, results)</code></pre>
 </details>
 <h3>Static methods</h3>
 <dl>
 <dt id="preem.Tournament.run"><code class="name flex">
-<span>def <span class="ident">run</span></span>(<span>cls, map, agents, rounds=10, players_per_game=2, n_processes=5)</span>
+<span>def <span class="ident">run</span></span>(<span>cls, map, agents, agent_names=None, rounds=10, players_per_game=2, n_processes=5)</span>
 </code></dt>
 <dd>
 <section class="desc"><p>Run a round-robin tournament, in parallel across different processes, and return results.</p>
@@ -3256,13 +3474,15 @@ are used to run the games.</p>
 <p><strong>Warning</strong> - as this is a full round-robin, it scales exponentially with number of agents.</p>
 <p><code>map</code> &ndash; <a title="preem.Map" href="#preem.Map"><code>Map</code></a></p>
 <p><code>agents</code> &ndash; <code>[Agent]</code> &ndash; agents to participate in the tournament</p>
+<p><code>agent_names</code> &ndash; <code>[str] or None</code> &ndash; override the default naming "module.Class"
+(e.g. using <code>str(agent)</code>)</p>
 <p><code>players_per_game</code> &ndash; <code>int</code> &ndash; e.g. <code>2</code> (for 1v1), or <code>len(agents)</code> for all-vs-all</p>
 <p><code>n_processes</code> &ndash; <code>int</code> &ndash; number of game playing workers to spawn</p>
 <p><strong><code>returns</code></strong> &ndash; <a title="preem.TournamentResult" href="#preem.TournamentResult"><code>TournamentResult</code></a> &ndash; outcomes of all games</p></section>
 <details class="source">
 <summary>Source code</summary>
 <pre><code class="python">@classmethod
-def run(cls, map, agents, rounds=10, players_per_game=2,
+def run(cls, map, agents, agent_names=None, rounds=10, players_per_game=2,
         n_processes=multiprocessing.cpu_count() + 1):
     &#34;&#34;&#34;Run a round-robin tournament, in parallel across different processes, and return results.
 
@@ -3275,6 +3495,9 @@ def run(cls, map, agents, rounds=10, players_per_game=2,
 
     `agents` -- `[Agent]` -- agents to participate in the tournament
 
+    `agent_names` -- `[str] or None` -- override the default naming &#34;module.Class&#34;
+                     (e.g. using `str(agent)`)
+
     `players_per_game` -- `int` -- e.g. `2` (for 1v1), or `len(agents)` for all-vs-all
 
     `n_processes` -- `int` -- number of game playing workers to spawn
@@ -3282,13 +3505,16 @@ def run(cls, map, agents, rounds=10, players_per_game=2,
     **`returns`** -- `TournamentResult` -- outcomes of all games
     &#34;&#34;&#34;
     agent_indices = list(range(len(agents)))
+    agent_names = (agent_names
+                   if agent_names is not None else
+                   [_long_class_name(agent) for agent in agents])
     with multiprocessing.Pool(n_processes) as pool:
         results = list(pool.map(
-            cls._Runner(map, agents),
+            cls._Runner(map, agents, agent_names),
             (indices
              for _ in range(rounds)
              for indices in it.combinations(agent_indices, players_per_game))))
-        return TournamentResult([str(agent) for agent in agents], results)</code></pre>
+        return TournamentResult(agent_names, results)</code></pre>
 </details>
 </dd>
 </dl>
@@ -3358,8 +3584,102 @@ two wins, no losses, the win rate is 75%).</p></section>
                 played[winner] += 1
             for eliminated in game.eliminated:
                 played[eliminated] += 1
-        return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]</code></pre>
+        return [None if nplayed == 0 else nwin / nplayed for nwin, nplayed in zip(wins, played)]
+
+    @classmethod
+    def _from_json(cls, d):
+        return cls(player_names=d[&#39;player_names&#39;],
+                   games=[GameResult._from_json(game, player_names=d[&#39;player_names&#39;])
+                          for game in d[&#39;games&#39;]])
+
+    def _to_json(self):
+        return dict(player_names=self.player_names,
+                    games=[game._to_json(save_player_names=False) for game in self.games])
+
+    @property
+    def pairwise_win_rate(self):
+        &#34;&#34;&#34;For 1v1 tournaments, show a matrix of pairwise performance in individual match-ups.
+
+        **`returns`** -- `np.array` -- where result[p0][p1] is the win rate of p0 in the &#34;p0 vs p1&#34; match-up
+        &#34;&#34;&#34;
+        assert all(len(game.winners) + len(game.eliminated) == 2 for game in self.games), &#39;not a 1v1 tournament&#39;
+        played = np.zeros((self.n_players, self.n_players))
+        wins = played.copy()
+        for game in self.games:
+            p = list(game.winners) + game.eliminated
+            played[p[0], p[1]] += 1
+            played[p[1], p[0]] += 1
+            wins[p[0], p[1]] += (p[0] in game.winners) / len(game.winners)
+            wins[p[1], p[0]] += (p[1] in game.winners) / len(game.winners)
+        return wins / (played + np.eye(self.n_players))
+
+    @classmethod
+    def load(cls, path):
+        &#34;&#34;&#34;Load a tournament result from disk.
+
+        `path` -- `str` -- local path to a JSON file
+
+        **`returns`** -- `TournamentResult`
+        &#34;&#34;&#34;
+        with open(path, &#39;r&#39;) as f:
+            return cls.load_file(f)
+
+    @classmethod
+    def load_file(cls, f):
+        &#34;&#34;&#34;Load a tournament result from file object.&#34;&#34;&#34;
+        return cls._from_json(json.load(f))
+
+    def save(self, path):
+        &#34;&#34;&#34;Save a tournament result to disk.
+
+        `path` -- `str` -- local path to a JSON file
+
+        **`returns`** -- `TournamentResult`
+        &#34;&#34;&#34;
+        with open(path, &#39;w&#39;) as f:
+            return self.save_file(f)
+
+    def save_file(self, f):
+        &#34;&#34;&#34;Save a tournament result to file object.&#34;&#34;&#34;
+        json.dump(self._to_json(), f)</code></pre>
 </details>
+<h3>Static methods</h3>
+<dl>
+<dt id="preem.TournamentResult.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>cls, path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Load a tournament result from disk.</p>
+<p><code>path</code> &ndash; <code>str</code> &ndash; local path to a JSON file</p>
+<p><strong><code>returns</code></strong> &ndash; <a title="preem.TournamentResult" href="#preem.TournamentResult"><code>TournamentResult</code></a></p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def load(cls, path):
+    &#34;&#34;&#34;Load a tournament result from disk.
+
+    `path` -- `str` -- local path to a JSON file
+
+    **`returns`** -- `TournamentResult`
+    &#34;&#34;&#34;
+    with open(path, &#39;r&#39;) as f:
+        return cls.load_file(f)</code></pre>
+</details>
+</dd>
+<dt id="preem.TournamentResult.load_file"><code class="name flex">
+<span>def <span class="ident">load_file</span></span>(<span>cls, f)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Load a tournament result from file object.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def load_file(cls, f):
+    &#34;&#34;&#34;Load a tournament result from file object.&#34;&#34;&#34;
+    return cls._from_json(json.load(f))</code></pre>
+</details>
+</dd>
+</dl>
 <h3>Instance variables</h3>
 <dl>
 <dt id="preem.TournamentResult.games"><code class="name">var <span class="ident">games</span></code></dt>
@@ -3375,6 +3695,30 @@ two wins, no losses, the win rate is 75%).</p></section>
 def n_players(self):
     &#34;&#34;&#34;Number of players in the tournament.&#34;&#34;&#34;
     return len(self.player_names)</code></pre>
+</details>
+</dd>
+<dt id="preem.TournamentResult.pairwise_win_rate"><code class="name">var <span class="ident">pairwise_win_rate</span></code></dt>
+<dd>
+<section class="desc"><p>For 1v1 tournaments, show a matrix of pairwise performance in individual match-ups.</p>
+<p><strong><code>returns</code></strong> &ndash; <code>np.array</code> &ndash; where result[p0][p1] is the win rate of p0 in the "p0 vs p1" match-up</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def pairwise_win_rate(self):
+    &#34;&#34;&#34;For 1v1 tournaments, show a matrix of pairwise performance in individual match-ups.
+
+    **`returns`** -- `np.array` -- where result[p0][p1] is the win rate of p0 in the &#34;p0 vs p1&#34; match-up
+    &#34;&#34;&#34;
+    assert all(len(game.winners) + len(game.eliminated) == 2 for game in self.games), &#39;not a 1v1 tournament&#39;
+    played = np.zeros((self.n_players, self.n_players))
+    wins = played.copy()
+    for game in self.games:
+        p = list(game.winners) + game.eliminated
+        played[p[0], p[1]] += 1
+        played[p[1], p[0]] += 1
+        wins[p[0], p[1]] += (p[0] in game.winners) / len(game.winners)
+        wins[p[1], p[0]] += (p[1] in game.winners) / len(game.winners)
+    return wins / (played + np.eye(self.n_players))</code></pre>
 </details>
 </dd>
 <dt id="preem.TournamentResult.player_names"><code class="name">var <span class="ident">player_names</span></code></dt>
@@ -3445,6 +3789,38 @@ See help(type(self)) for accurate signature.</p></section>
     &#34;&#34;&#34;`[GameResult]` -- list of `GameResult` for each game played in the tournament&#34;&#34;&#34;</code></pre>
 </details>
 </dd>
+<dt id="preem.TournamentResult.save"><code class="name flex">
+<span>def <span class="ident">save</span></span>(<span>self, path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Save a tournament result to disk.</p>
+<p><code>path</code> &ndash; <code>str</code> &ndash; local path to a JSON file</p>
+<p><strong><code>returns</code></strong> &ndash; <a title="preem.TournamentResult" href="#preem.TournamentResult"><code>TournamentResult</code></a></p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def save(self, path):
+    &#34;&#34;&#34;Save a tournament result to disk.
+
+    `path` -- `str` -- local path to a JSON file
+
+    **`returns`** -- `TournamentResult`
+    &#34;&#34;&#34;
+    with open(path, &#39;w&#39;) as f:
+        return self.save_file(f)</code></pre>
+</details>
+</dd>
+<dt id="preem.TournamentResult.save_file"><code class="name flex">
+<span>def <span class="ident">save_file</span></span>(<span>self, f)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Save a tournament result to file object.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def save_file(self, f):
+    &#34;&#34;&#34;Save a tournament result to file object.&#34;&#34;&#34;
+    json.dump(self._to_json(), f)</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 <dt id="preem.World"><code class="flex name class">
@@ -3482,17 +3858,13 @@ See help(type(self)) for accurate signature.</p></section>
         actions of every other agent. Note that in this log the `agent` has been replaced with
         `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
         private information leakage).&#34;&#34;&#34;
+        self._thinking_time = [0 for _ in range(len(player_names))]
 
     def __repr__(self):
         return &#39;World[map={}, players={}]&#39;.format(self.map, self.n_players)
 
     def _repr_svg_(self):
         return _View.to_svg(_View.world_to_graph(self))
-
-    def _add_event(self, event):
-        self.event_log.append(event._replace(agent=repr(event.agent),
-                                             state=event.state.player_index))
-        return event
 
     @property
     def n_players(self):
@@ -3637,7 +4009,8 @@ See help(type(self)) for accurate signature.</p></section>
     &#34;&#34;&#34;`[Event]` -- list of `Event`s that have been generated so far - i.e. the responses &amp;
     actions of every other agent. Note that in this log the `agent` has been replaced with
     `repr(agent)`, and the `state` has been replaced with `state.player_index` (to prevent
-    private information leakage).&#34;&#34;&#34;</code></pre>
+    private information leakage).&#34;&#34;&#34;
+    self._thinking_time = [0 for _ in range(len(player_names))]</code></pre>
 </details>
 </dd>
 <dt id="preem.World.count_territories"><code class="name flex">
@@ -3761,11 +4134,14 @@ See help(type(self)) for accurate signature.</p></section>
 </li>
 <li>
 <h4><code><a title="preem.GameResult" href="#preem.GameResult">GameResult</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="preem.GameResult.__init__" href="#preem.GameResult.__init__">__init__</a></code></li>
 <li><code><a title="preem.GameResult.eliminated" href="#preem.GameResult.eliminated">eliminated</a></code></li>
+<li><code><a title="preem.GameResult.game_time" href="#preem.GameResult.game_time">game_time</a></code></li>
 <li><code><a title="preem.GameResult.outright_winner" href="#preem.GameResult.outright_winner">outright_winner</a></code></li>
 <li><code><a title="preem.GameResult.player_names" href="#preem.GameResult.player_names">player_names</a></code></li>
+<li><code><a title="preem.GameResult.thinking_time" href="#preem.GameResult.thinking_time">thinking_time</a></code></li>
+<li><code><a title="preem.GameResult.turns" href="#preem.GameResult.turns">turns</a></code></li>
 <li><code><a title="preem.GameResult.winners" href="#preem.GameResult.winners">winners</a></code></li>
 </ul>
 </li>
@@ -3821,9 +4197,14 @@ See help(type(self)) for accurate signature.</p></section>
 <ul class="two-column">
 <li><code><a title="preem.TournamentResult.__init__" href="#preem.TournamentResult.__init__">__init__</a></code></li>
 <li><code><a title="preem.TournamentResult.games" href="#preem.TournamentResult.games">games</a></code></li>
+<li><code><a title="preem.TournamentResult.load" href="#preem.TournamentResult.load">load</a></code></li>
+<li><code><a title="preem.TournamentResult.load_file" href="#preem.TournamentResult.load_file">load_file</a></code></li>
 <li><code><a title="preem.TournamentResult.n_players" href="#preem.TournamentResult.n_players">n_players</a></code></li>
+<li><code><a title="preem.TournamentResult.pairwise_win_rate" href="#preem.TournamentResult.pairwise_win_rate">pairwise_win_rate</a></code></li>
 <li><code><a title="preem.TournamentResult.player_names" href="#preem.TournamentResult.player_names">player_names</a></code></li>
 <li><code><a title="preem.TournamentResult.ranked_players" href="#preem.TournamentResult.ranked_players">ranked_players</a></code></li>
+<li><code><a title="preem.TournamentResult.save" href="#preem.TournamentResult.save">save</a></code></li>
+<li><code><a title="preem.TournamentResult.save_file" href="#preem.TournamentResult.save_file">save_file</a></code></li>
 <li><code><a title="preem.TournamentResult.win_rate" href="#preem.TournamentResult.win_rate">win_rate</a></code></li>
 </ul>
 </li>
